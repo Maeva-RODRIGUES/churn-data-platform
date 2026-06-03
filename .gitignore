@@ -1,0 +1,16 @@
+# IDE / environnements
+.idea/
+.venv/
+.qodo/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+
+# Download dataset on : https://www.kaggle.com/datasets/blastchar/telco-customer-churn
+data/raw/*
+data/processed/*
+
+# To conserve the structure of the folders, we add .gitkeep files
+!data/raw/.gitkeep
+!data/processed/.gitkeep
