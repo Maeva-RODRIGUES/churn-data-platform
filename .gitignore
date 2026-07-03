@@ -12,5 +12,5 @@ data/raw/*
 data/processed/*
 
 # To conserve the structure of the folders, we add .gitkeep files
-!data/raw/.gitkeep
+!data/raw/.gitkee
 !data/processed/.gitkeep
