@@ -1,1 +1,14 @@
+# IDE / environments
 .idea/
+.venv/
+.qodo/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Nested git repositories (separate clones, not tracked here)
+churn-data-platform-artefact/
+datascientest/
+
+# Data is not versioned in git (use external storage instead)
+data-enrichi.zip

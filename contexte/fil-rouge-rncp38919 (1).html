@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fil Rouge · RNCP38919</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --surface3: #212636;
+    --border: #252a38;
+    --accent: #6c8fff;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #f87171;
+    --warn: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    grid-template-rows: 58px 1fr;
+    height: 100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 22px;
+    gap: 14px;
+  }
+  .topbar-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 19px;
+    letter-spacing: 0.2px;
+  }
+  .topbar-logo span { color: var(--accent); font-style: italic; }
+  .topbar-sub {
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding-top: 2px;
+  }
+  .topbar-status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 18px 12px;
+    overflow-y: auto;
+  }
+  .nav-group { margin-bottom: 22px; }
+  .nav-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 10px 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 13.5px;
+    transition: background .12s;
+  }
+  .nav-item:hover { background: var(--surface2); }
+  .nav-item.active { background: var(--surface3); color: var(--accent); font-weight: 500; }
+  .nav-icon { width: 15px; text-align: center; opacity: 0.85; font-size: 13px; }
+
+  /* section tree in sidebar for dossier view */
+  .etape-block { margin-bottom: 4px; }
+  .etape-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .etape-head:hover { color: var(--text); }
+  .etape-progress {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+  }
+  .sub-item {
+    padding: 7px 10px 7px 20px;
+    font-size: 12.5px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sub-item:hover { background: var(--surface2); color: var(--text); }
+  .sub-item.active { background: var(--surface3); color: var(--accent); }
+  .sub-check { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .sub-check.done { background: var(--accent3); }
+
+  /* ── MAIN ── */
+  .main {
+    overflow-y: auto;
+    padding: 34px 42px 80px;
+  }
+  .view { display: none; max-width: 980px; }
+  .view.active { display: block; }
+
+  h1.page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px;
+    margin-bottom: 6px;
+  }
+  .page-desc { color: var(--muted); margin-bottom: 30px; font-size: 13.5px; max-width: 640px; }
+
+  /* dashboard cards */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 30px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card-num { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--accent); }
+  .card-label { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  .progress-bar-bg {
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .3s;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+  }
+  .panel h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+
+  /* form */
+  label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 5px; margin-top: 14px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], textarea, select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    resize: vertical;
+  }
+  input[type=text]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .btn {
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-row { display: flex; gap: 10px; margin-top: 18px; align-items: center; }
+
+  .badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--surface3);
+    color: var(--accent2);
+    margin-right: 6px;
+  }
+  .livrable-note {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border-left: 2px solid var(--accent);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+
+  .guidance-box {
+    margin-top: 10px;
+    background: rgba(167,139,250,0.07);
+    border: 1px solid rgba(167,139,250,0.25);
+    border-radius: 7px;
+    padding: 4px 12px;
+  }
+  .guidance-box summary {
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--accent2);
+    padding: 8px 0;
+    list-style: none;
+  }
+  .guidance-box summary::-webkit-details-marker { display: none; }
+  .guidance-box summary::before { content: '▸ '; }
+  .guidance-box[open] summary::before { content: '▾ '; }
+  .guidance-box p {
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.6;
+    padding-bottom: 10px;
+    margin: 0;
+  }
+
+  .section-editor textarea { min-height: 340px; font-size: 13.5px; line-height: 1.65; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .word-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .save-status { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent3); opacity: 0; transition: opacity .2s; }
+  .save-status.show { opacity: 1; }
+
+  /* blocs view */
+  .bloc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .bloc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .bloc-card h4 { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 15px; margin-bottom: 4px; }
+  .bloc-card .bloc-intitule { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .bloc-sections { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bloc-tag { font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 7px; border-radius: 4px; background: var(--surface2); color: var(--muted); }
+  .bloc-tag.done { background: rgba(52,211,153,0.12); color: var(--accent3); }
+
+  /* SWOT / PESTEL visual grid */
+  .sp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+  .sp-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--cell-color, var(--accent));
+    border-radius: 10px;
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .sp-cell-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px;
+    color: var(--cell-color, var(--accent));
+    margin-bottom: 8px;
+  }
+  .sp-cell textarea {
+    flex: 1;
+    min-height: 170px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    line-height: 1.6;
+    resize: vertical;
+  }
+  .sp-cell textarea:focus { outline: none; border-color: var(--cell-color, var(--accent)); }
+
+  .pestel-list { display: flex; flex-direction: column; gap: 10px; }
+  .pestel-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--row-color, var(--accent));
+    border-radius: 10px;
+    padding: 12px 16px;
+    align-items: start;
+  }
+  .pestel-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 6px;
+  }
+  .pestel-badge {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--row-color, var(--accent));
+    color: #0d0f14;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pestel-label span { font-size: 13px; font-weight: 500; }
+  .pestel-row textarea {
+    min-height: 64px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    line-height: 1.55;
+    resize: vertical;
+  }
+  .pestel-row textarea:focus { outline: none; border-color: var(--row-color, var(--accent)); }
+
+  @media (max-width: 900px) {
+    .sp-grid { grid-template-columns: 1fr; }
+    .pestel-row { grid-template-columns: 1fr; }
+  }
+
+  /* section images */
+  .img-panel {
+    margin-top: 10px;
+  }
+  .img-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .img-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .img-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .img-hint { font-size: 11px; color: var(--muted); }
+  .img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .img-thumb {
+    position: relative;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .img-thumb img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    display: block;
+  }
+  .img-thumb-name {
+    font-size: 10.5px;
+    color: var(--muted);
+    padding: 5px 7px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .img-thumb-del {
+    position: absolute;
+    top: 5px; right: 5px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(13,15,20,0.75);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .img-thumb-del:hover { background: var(--danger); }
+  .img-thumb.contain img { object-fit: contain; background: #0d0f14; }
+
+  /* data dictionary table */
+  .dict-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .dict-table thead th {
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dict-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .dict-table tr:last-child td { border-bottom: none; }
+  .dict-table td input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 7px 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+  }
+  .dict-table td input:hover { background: var(--surface2); }
+  .dict-table td input:focus { outline: none; background: var(--surface2); border-color: var(--accent); }
+  .dict-row-del {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .dict-row-del:hover { background: var(--danger); color: #0d0f14; }
+
+  /* word count color coding */
+  .word-count.wc-ok { color: var(--accent3); }
+  .word-count.wc-warn { color: var(--warn); }
+  .word-count.wc-bad { color: var(--danger); }
+
+  textarea#exportPreview { min-height: 480px; }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; grid-template-rows: 58px auto 1fr; }
+    .sidebar { display: none; }
+    .cards, .form-row, .bloc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="topbar">
+    <div>
+      <div class="topbar-logo">Fil Rouge <span>RNCP38919</span></div>
+    </div>
+    <div class="topbar-status"><span class="dot"></span> Sauvegarde automatique · partagée avec le binôme</div>
+  </div>
+
+  <div class="sidebar">
+    <div class="nav-group">
+      <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+        <span class="nav-icon">◆</span> Tableau de bord
+      </div>
+      <div class="nav-item" data-view="projet" onclick="switchView('projet')">
+        <span class="nav-icon">▤</span> Mon projet
+      </div>
+      <div class="nav-item" data-view="blocs" onclick="switchView('blocs')">
+        <span class="nav-icon">▦</span> Blocs de compétences
+      </div>
+      <div class="nav-item" data-view="swotpestel" onclick="switchView('swotpestel')">
+        <span class="nav-icon">▨</span> SWOT & PESTEL
+      </div>
+      <div class="nav-item" data-view="datadict" onclick="switchView('datadict')">
+        <span class="nav-icon">▥</span> Dictionnaire de données
+      </div>
+      <div class="nav-item" data-view="export" onclick="switchView('export')">
+        <span class="nav-icon">⇩</span> Export dossier
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Rédaction du dossier</div>
+      <div id="sectionTree"></div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-desc">Vue d'ensemble de l'avancement du dossier fil rouge, RNCP38919 Niveau 7.</p>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-num" id="statDone">0</div>
+          <div class="card-label">sections rédigées</div>
+        </div>
+        <div class="card">
+          <div class="card-num" id="statTotal">24</div>
+          <div class="card-label">sections au total</div>
+        </div>
+        <div class="card">
+          <div class="card-num" id="statWords">0</div>
+          <div class="card-label">mots rédigés</div>
+        </div>
+        <div class="card">
+          <div class="card-num" id="statBlocs">0/4</div>
+          <div class="card-label">blocs entamés</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Avancement global</h3>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="globalProgress" style="width:0%"></div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Projet en cours</h3>
+        <div id="dashProjectSummary" style="font-size:13.5px; color: var(--muted); line-height:1.7;"></div>
+      </div>
+    </div>
+
+    <!-- PROJET -->
+    <div class="view" id="view-projet">
+      <h1 class="page-title">Mon projet</h1>
+      <p class="page-desc">Contexte du projet, utilisé pour personnaliser la rédaction des sections.</p>
+
+      <div class="panel">
+        <label>Nom du projet</label>
+        <input type="text" id="p_nom">
+
+        <div class="form-row">
+          <div>
+            <label>Domaine</label>
+            <input type="text" id="p_domaine">
+          </div>
+          <div>
+            <label>Binôme / co-équipier</label>
+            <input type="text" id="p_binome">
+          </div>
+        </div>
+
+        <label>Problématique métier (résumé)</label>
+        <textarea id="p_problematique" style="min-height:80px"></textarea>
+
+        <label>Stack technique retenue</label>
+        <textarea id="p_stack" style="min-height:80px"></textarea>
+
+        <label>Source(s) de données</label>
+        <input type="text" id="p_donnees">
+
+        <label>Entreprise / contexte alternance</label>
+        <input type="text" id="p_entreprise">
+
+        <div class="btn-row">
+          <button class="btn" onclick="saveProject()">Enregistrer</button>
+          <span class="save-status" id="projectSaveStatus">Enregistré ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION EDITOR (dynamic) -->
+    <div class="view" id="view-section">
+      <div id="sectionEditorHead"></div>
+      <div class="panel section-editor">
+        <div id="sectionBadges"></div>
+        <div id="sectionLivrable"></div>
+        <div id="sectionGuidance"></div>
+        <label style="margin-top:16px">Contenu de la section</label>
+        <textarea id="sectionContent" oninput="onSectionInput()"></textarea>
+        <div class="meta-row">
+          <span class="word-count" id="sectionWordCount">0 mots</span>
+          <span class="save-status" id="sectionSaveStatus">Enregistré ✓</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="saveSection()">Enregistrer la section</button>
+          <button class="btn secondary" onclick="copySectionPrompt()">Copier un prompt de rédaction</button>
+        </div>
+
+        <div class="img-panel">
+          <label>Images de la section</label>
+          <div class="img-upload-row">
+            <label class="img-upload-btn">
+              ＋ Ajouter des images
+              <input type="file" accept="image/*" multiple style="display:none" onchange="handleImageUpload(this.files)">
+            </label>
+            <span class="img-hint">JPG/PNG, ~3 Mo max par image</span>
+          </div>
+          <div class="img-grid" id="sectionImgGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SWOT & PESTEL -->
+    <div class="view" id="view-swotpestel">
+      <h1 class="page-title">SWOT & PESTEL</h1>
+      <p class="page-desc">Écris directement dans les cases. Sauvegarde automatique. Alimente la section 2.5 du dossier.</p>
+
+      <h3 style="font-family:'DM Serif Display',serif; font-weight:400; font-size:17px; margin-bottom:12px;">Matrice SWOT</h3>
+      <div class="sp-grid">
+        <div class="sp-cell" style="--cell-color:#34d399">
+          <div class="sp-cell-title">Forces</div>
+          <textarea id="sp_forces" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="sp-cell" style="--cell-color:#fb923c">
+          <div class="sp-cell-title">Faiblesses</div>
+          <textarea id="sp_faiblesses" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="sp-cell" style="--cell-color:#6c8fff">
+          <div class="sp-cell-title">Opportunités</div>
+          <textarea id="sp_opportunites" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="sp-cell" style="--cell-color:#f87171">
+          <div class="sp-cell-title">Menaces</div>
+          <textarea id="sp_menaces" oninput="onSwotPestelInput()"></textarea>
+        </div>
+      </div>
+
+      <h3 style="font-family:'DM Serif Display',serif; font-weight:400; font-size:17px; margin-bottom:12px;">Analyse PESTEL</h3>
+      <div class="pestel-list">
+        <div class="pestel-row" style="--row-color:#6c8fff">
+          <div class="pestel-label"><span class="pestel-badge">P</span><span>Politique</span></div>
+          <textarea id="sp_politique" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="pestel-row" style="--row-color:#fbbf24">
+          <div class="pestel-label"><span class="pestel-badge">É</span><span>Économique</span></div>
+          <textarea id="sp_economique" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="pestel-row" style="--row-color:#f472b6">
+          <div class="pestel-label"><span class="pestel-badge">S</span><span>Sociologique</span></div>
+          <textarea id="sp_sociologique" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="pestel-row" style="--row-color:#2dd4bf">
+          <div class="pestel-label"><span class="pestel-badge">T</span><span>Technologique</span></div>
+          <textarea id="sp_technologique" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="pestel-row" style="--row-color:#34d399">
+          <div class="pestel-label"><span class="pestel-badge">É</span><span>Écologique</span></div>
+          <textarea id="sp_ecologique" oninput="onSwotPestelInput()"></textarea>
+        </div>
+        <div class="pestel-row" style="--row-color:#a78bfa">
+          <div class="pestel-label"><span class="pestel-badge">L</span><span>Légal</span></div>
+          <textarea id="sp_legal" oninput="onSwotPestelInput()"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="saveSwotPestel()">Enregistrer</button>
+        <button class="btn secondary" onclick="pushSwotPestelToSection()">Copier le texte vers la section 2.5</button>
+        <button class="btn secondary" onclick="insertSwotPestelImages()">Insérer les schémas (image) dans la 2.5</button>
+        <span class="save-status" id="swotPestelSaveStatus">Enregistré ✓</span>
+      </div>
+    </div>
+
+    <!-- DICTIONNAIRE DE DONNÉES -->
+    <div class="view" id="view-datadict">
+      <h1 class="page-title">Dictionnaire de données</h1>
+      <p class="page-desc">Une ligne par champ. Alimente la section 4.2 Modélisation des données.</p>
+      <div class="btn-row" style="margin-bottom:16px">
+        <button class="btn" onclick="addDictRow()">+ Ajouter une ligne</button>
+        <button class="btn secondary" onclick="saveDataDict()">Enregistrer</button>
+        <span class="save-status" id="dictSaveStatus">Enregistré ✓</span>
+      </div>
+      <div class="panel" style="padding:0; overflow-x:auto;">
+        <table class="dict-table">
+          <thead>
+            <tr>
+              <th style="width:16%">Table / source</th>
+              <th style="width:16%">Champ</th>
+              <th style="width:12%">Type</th>
+              <th>Description</th>
+              <th style="width:16%">Exemple</th>
+              <th style="width:36px"></th>
+            </tr>
+          </thead>
+          <tbody id="dictTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BLOCS -->
+    <div class="view" id="view-blocs">
+      <h1 class="page-title">Blocs de compétences</h1>
+      <p class="page-desc">Couverture des blocs BC01 à BC04 selon les sections déjà rédigées.</p>
+      <div class="bloc-grid" id="blocGrid"></div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="view" id="view-export">
+      <h1 class="page-title">Export du dossier</h1>
+      <p class="page-desc">Génère le dossier complet en Markdown, à coller dans Word ou Google Docs.</p>
+      <div class="btn-row" style="margin-bottom:16px">
+        <button class="btn" onclick="generateExport()">Générer l'aperçu</button>
+        <button class="btn secondary" onclick="downloadExport()">Télécharger le .md</button>
+        <button class="btn secondary" onclick="downloadExportHTML()">Télécharger en .html (avec images)</button>
+        <button class="btn secondary" onclick="downloadExportDocx()">Télécharger en .doc (Word)</button>
+        <button class="btn secondary" onclick="copyExport()">Copier</button>
+      </div>
+      <textarea id="exportPreview" readonly style="font-family:'DM Mono',monospace; font-size:12px; white-space:pre-wrap;"></textarea>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// PLAN DU DOSSIER (RNCP38919)
+// ═══════════════════════════════════════════
+const ETAPES = [
+  { id: 'e0', label: 'Page de garde & intro', sections: [
+    { id: '1.1', titre: 'Contexte métier', bloc: ['BC01'], livrable: null },
+    { id: '1.2', titre: 'Objectifs du projet', bloc: ['BC01'], livrable: null },
+    { id: '1.3', titre: 'Périmètre du projet', bloc: ['BC01'], livrable: null },
+  ]},
+  { id: 'e1', label: 'Étape 1 – Cadrage', sections: [
+    { id: '2.1', titre: 'Discovery & compréhension du besoin', bloc: ['BC01'], livrable: "Guide d'entretien + Experience Map" },
+    { id: '2.2', titre: "Analyse de l'existant & ressources", bloc: ['BC01'], livrable: null },
+    { id: '2.3', titre: 'KPIs & indicateurs de performance', bloc: ['BC01'], livrable: null },
+    { id: '2.4', titre: 'Veille technologique & réglementaire', bloc: ['BC01'], livrable: 'Doc de veille, min. 3 solutions comparées' },
+    { id: '2.5', titre: 'Analyse SWOT & PESTEL', bloc: ['BC01'], livrable: 'Slide SWOT avec RSE & accessibilité' },
+  ]},
+  { id: 'e2', label: 'Étape 2 – Conception', sections: [
+    { id: '3.1', titre: 'Définition du MVP', bloc: ['BC01','BC02'], livrable: null },
+    { id: '3.2', titre: 'Architecture cible', bloc: ['BC01','BC02'], livrable: 'Schéma global + flux + justification technos' },
+    { id: '3.3', titre: 'Contraintes transverses', bloc: ['BC01'], livrable: 'RGPD, éthique, accessibilité, RSE' },
+    { id: '3.4', titre: 'Challenge du MVP', bloc: ['BC04'], livrable: "Doc d'argumentation, risques, budget" },
+  ]},
+  { id: 'e3', label: 'Étape 3 – Data Engineering', sections: [
+    { id: '4.1', titre: 'Sources de données', bloc: ['BC02'], livrable: 'APIs, scraping, open data' },
+    { id: '4.2', titre: 'Modélisation des données', bloc: ['BC02'], livrable: 'Schéma BDD détaillé' },
+    { id: '4.3', titre: 'Pipeline ETL / ELT', bloc: ['BC02'], livrable: 'Pipeline fonctionnel (dbt, Spark, Airflow…)' },
+  ]},
+  { id: 'e4', label: 'Étape 4 – Exploitation', sections: [
+    { id: '5.1', titre: 'Data visualisation', bloc: ['BC02','BC03'], livrable: "Dashboard + KPIs + cas d'usage" },
+    { id: '5.2', titre: 'Machine Learning', bloc: ['BC03'], livrable: 'Modèle ML + dashboard, MLflow, drift' },
+  ]},
+  { id: 'e5', label: 'Étape 5 – Mise en production', sections: [
+    { id: '6.1', titre: 'API de consommation', bloc: ['BC03'], livrable: 'Endpoints, sécurité, OpenAPI/Swagger' },
+    { id: '6.2', titre: 'Conteneurisation', bloc: ['BC03'], livrable: 'API + projet dockerisé, docker-compose' },
+  ]},
+  { id: 'e6', label: 'Étape 6 – DevOps', sections: [
+    { id: '7.1', titre: 'CI/CD & infrastructure', bloc: ['BC03','BC04'], livrable: 'Scripts CI/CD, IaC, stratégie déploiement' },
+    { id: '7.2', titre: 'Monitoring & observabilité', bloc: ['BC03','BC04'], livrable: 'DORA metrics, logs, alertes, Grafana/Prometheus' },
+  ]},
+  { id: 'e7', label: 'Roadmap & pilotage', sections: [
+    { id: '8.1', titre: 'Roadmap produit', bloc: ['BC04'], livrable: 'Épics, jalons, post-MVP' },
+    { id: '8.2', titre: 'Gestion des ressources', bloc: ['BC04'], livrable: 'RH, technique, coûts' },
+    { id: '8.3', titre: 'Stratégie de tests & maintenance', bloc: ['BC03','BC04'], livrable: null },
+  ]},
+  { id: 'e8', label: 'Clôture', sections: [
+    { id: '9.0', titre: 'Lancement & conduite du changement', bloc: ['BC04'], livrable: null },
+    { id: '10.0', titre: 'Conclusion & perspectives', bloc: ['BC01','BC04'], livrable: null },
+    { id: '11.0', titre: 'Annexes', bloc: [], livrable: 'Schémas, extraits de code, liens Git' },
+  ]},
+];
+
+const BLOCS = {
+  BC01: "Concevoir un projet d'architecture technique de gestion de données",
+  BC02: "Élaborer une architecture technique de gestion de données",
+  BC03: "Déployer une solution d'analyse de données massives intégrant l'IA",
+  BC04: "Piloter un projet d'architecture technique de gestion de données",
+};
+
+function flatSections() {
+  return ETAPES.flatMap(e => e.sections);
+}
+
+// ═══════════════════════════════════════════
+// CONTENU PRÉ-REMPLI (rédigé en conversation)
+// ═══════════════════════════════════════════
+const PREFILL = {
+  '1.1': `Dans un marché télécom mature et fortement concurrentiel, l'acquisition de nouveaux clients coûte significativement plus cher que la fidélisation des clients existants. La perte d'un client (churn) représente donc un enjeu financier direct, d'autant plus que les clients captés par la concurrence sont rarement récupérables à court terme. Or, la majorité des opérateurs ne disposent pas d'une vision consolidée et prédictive du risque de résiliation : les signaux de désengagement (baisse d'usage, réclamations, changement de contrat) restent souvent analysés a posteriori, une fois le client déjà parti.
+
+La problématique du projet peut donc se formuler ainsi : comment identifier, à partir des données contractuelles, comportementales et déclaratives disponibles, les clients présentant un risque élevé de résiliation, suffisamment tôt pour permettre une action de rétention ciblée ?
+
+Cette problématique se décline en plusieurs sous-questions qui structureront les choix techniques du projet : quelles variables sont réellement prédictives du churn (ancienneté, type de contrat, mode de paiement, services souscrits) ? Comment enrichir les données contractuelles brutes avec des signaux qualitatifs (avis clients, satisfaction) pour améliorer la performance du modèle ? Et comment industrialiser cette prédiction pour qu'elle soit exploitable en continu par les équipes métier, plutôt que de rester un exercice ponctuel d'analyse ?
+
+C'est cette dernière dimension, l'industrialisation, qui justifie l'ampleur de l'architecture technique retenue (pipeline versionné, API, monitoring) : l'enjeu n'est pas seulement de produire un modèle performant, mais de garantir sa fiabilité, sa traçabilité et sa maintenabilité dans le temps.`,
+  '1.2': `Le projet Churn Data Platform poursuit un double objectif, métier et technique, ces deux dimensions étant étroitement articulées tout au long du pipeline.
+
+Sur le plan métier, l'objectif principal est de construire un système capable de prédire, à partir des données contractuelles et comportementales disponibles, la probabilité de résiliation d'un client donné. Cette prédiction doit être suffisamment fiable et suffisamment précoce pour être exploitable par des équipes de rétention, avec un score de risque associé à chaque client plutôt qu'une simple classification binaire. Un second objectif métier consiste à enrichir cette approche prédictive par une segmentation des clients selon leur comportement et leur valeur (analyse LTV), afin de prioriser les actions de rétention là où l'enjeu financier est le plus significatif. Enfin, le projet vise à démontrer la valeur ajoutée de sources de données complémentaires, en particulier les avis clients collectés via scraping, pour affiner la compréhension des causes de churn au delà des seules variables contractuelles.
+
+Sur le plan technique, le projet a pour ambition de couvrir l'ensemble de la chaîne data engineering de façon industrialisée et non ponctuelle : ingestion et modélisation des données selon une architecture en couches (Bronze, Silver, Gold), transformation versionnée avec dbt, entraînement et suivi de modèles de machine learning tracés dans MLflow, exposition des résultats via une API sécurisée, et enfin automatisation du déploiement et de la supervision via CI/CD et monitoring. L'objectif n'est donc pas seulement de produire un modèle performant à un instant donné, mais de garantir que l'ensemble du pipeline reste reproductible, traçable et maintenable dans la durée, condition nécessaire à toute mise en production réelle.
+
+Enfin, un objectif transversal du projet est de rester conforme aux contraintes réglementaires et éthiques applicables au traitement de données clients, notamment le RGPD, dès la phase de conception plutôt qu'en correction a posteriori. Ce point sera développé en détail dans la section 3.3 consacrée aux contraintes transverses.`,
+  '1.3': `Le projet Churn Data Platform vise à concevoir une chaîne de traitement de données complète permettant d'anticiper la résiliation des clients (churn) d'un opérateur télécom, depuis la collecte des données brutes jusqu'à leur exploitation via un modèle de machine learning exposé en production. Le périmètre couvre l'ensemble de la chaîne data engineering : ingestion des données structurées (jeu de données Kaggle Telco Customer Churn) et semi-structurées (avis clients Trustpilot, données synthétiques générées), stockage relationnel organisé en couches Bronze / Silver / Gold sous PostgreSQL, transformation via dbt, exposition des résultats via une API sécurisée (FastAPI) consommée par un front (Streamlit), et enfin automatisation et supervision de l'ensemble via CI/CD et monitoring.
+
+D'un point de vue architectural, le projet s'organise selon une architecture inspirée du pattern Medallion, un enchaînement séquentiel classique en data engineering. Les données brutes (Kaggle, scraping Trustpilot, génération synthétique) sont d'abord collectées puis ingérées dans une zone de stockage brute (couche Bronze). Elles sont ensuite nettoyées, normalisées et enrichies pour alimenter une couche intermédiaire (Silver), avant d'être agrégées et modélisées dans une couche finale prête à l'usage (Gold), qui sert de socle à la fois aux analyses descriptives et à l'entraînement du modèle de machine learning. Ce modèle, une fois entraîné et versionné, est exposé via une API qui alimente à son tour un tableau de bord de restitution. L'ensemble de cette chaîne est conçu pour être rejouable et supervisé de bout en bout, l'architecture technique détaillée (choix des technologies et justifications précises) étant développée dans la section 3.2.
+
+Le projet est mené en binôme avec Alexandre Gire, ce qui implique une répartition claire des responsabilités entre les deux étapes du pipeline (à détailler en section 8.2 Gestion des ressources). Le périmètre exclut volontairement le déploiement sur une infrastructure cloud managée à ce stade : le projet est conçu et exécuté en environnement local conteneurisé (WSL, Podman), avec une architecture pensée pour rester portable vers un environnement cloud si une évolution ultérieure le justifie.
+
+Sur le plan fonctionnel, le périmètre se limite à la prédiction du churn au niveau client (et non à l'échelle d'un contrat ou d'un service individuel), avec une segmentation complémentaire des clients par comportement (clustering) pour affiner l'analyse de valeur client (LTV). Le projet ne couvre pas la mise en place d'actions de rétention automatisées (relances, offres) : il s'arrête à la mise à disposition du score de risque et des segments via l'API et le dashboard, charge aux équipes métier de définir les actions associées.`,
+};
+
+const PREFILL_PROJECT = {
+  nom: 'Churn Data Platform',
+  domaine: 'Télécom, prédiction du churn client',
+  binome: 'Alexandre Gire',
+  problematique: "Identifier, à partir des données contractuelles, comportementales et déclaratives, les clients à risque élevé de résiliation, suffisamment tôt pour permettre une action de rétention ciblée.",
+  stack: "Python, PostgreSQL (Bronze/Silver/Gold), MongoDB (enrichissement), dbt, Prefect, Scikit-learn/XGBoost, MLflow, FastAPI, Streamlit, Podman, GitHub Actions, Cookiecutter Data Science v2, Poetry (environnement WSL Ubuntu-24.04).",
+  donnees: "Kaggle Telco Customer Churn + scraping Trustpilot + données synthétiques (SDV)",
+  entreprise: '',
+};
+
+const PREFILL_SWOT = {
+  forces: "Binôme aux compétences complémentaires (pipeline data / modélisation)\nJeu de données Kaggle propre et documenté, effort concentré sur l'architecture\nStack technique cohérente et moderne (dbt, MLflow, FastAPI)\nArchitecture pensée dès le départ pour l'industrialisation (conteneurisation, CI/CD)",
+  faiblesses: "Dataset Kaggle statique, sans flux temps réel natif\nAbsence d'accès à un vrai système d'information opérateur télécom\nComplexité de la stack (Postgres, Mongo, dbt, Prefect, MLflow, API, conteneurs)\nDisponibilité du binôme contrainte par le rythme de l'alternance",
+  opportunites: "Problématique business universelle, forte valeur démonstrative en soutenance\nMarché du conseil data/IA en croissance sur la rétention client\nÉcosystème open source riche autour du churn (benchmarks, bibliothèques)\nDifférenciation possible via l'enrichissement par données non structurées (avis clients)",
+  menaces: "Évolution du cadre réglementaire européen sur l'IA\nDépendance à des sources tierces pour le scraping (structure de page, CGU)\nRisque de sur-ingénierie technique au détriment de la clarté de la démonstration\nAléas propres à un projet mené en binôme en alternance",
+};
+
+const PREFILL_PESTEL = {
+  politique: "Cadre européen sur la donnée et l'IA en densification (RGPD, IA Act), avec une volonté politique d'encadrer les systèmes de scoring individuel.",
+  economique: "Coût d'acquisition d'un client télécom nettement supérieur au coût de rétention : enjeu économique direct et facilement chiffrable.",
+  sociologique: "Sensibilité croissante des consommateurs à l'usage de leurs données et attente de transparence sur les décisions automatisées.",
+  technologique: "Écosystème MLOps open source (MLflow, dbt, Prefect) suffisamment mature pour une approche industrialisée, face à des alternatives low-code type Dataiku.",
+  ecologique: "Coût énergétique non négligeable de l'entraînement répété de modèles ML ; environnement local conteneurisé et réentraînement raisonné plutôt que cloud surdimensionné.",
+  legal: "Traitement de données clients à des fins de scoring relevant du RGPD (finalité, minimisation, droits d'accès) ; IA Act à surveiller selon la classification du système ; CGU à respecter pour le scraping Trustpilot.",
+};
+
+const PREFILL_DATADICT = [
+  { table: 'customers', field: 'customer_id', type: 'VARCHAR', description: 'Identifiant unique du client', example: '7590-VHVEG' },
+  { table: 'customers', field: 'gender', type: 'VARCHAR', description: 'Genre du client', example: 'Female' },
+  { table: 'customers', field: 'tenure', type: 'INTEGER', description: "Ancienneté en mois", example: '12' },
+  { table: 'contracts', field: 'contract_type', type: 'VARCHAR', description: 'Type de contrat', example: 'Month-to-month' },
+  { table: 'billing', field: 'monthly_charges', type: 'NUMERIC', description: 'Montant facturé mensuel', example: '70.35' },
+  { table: 'churn_labels', field: 'churn', type: 'BOOLEAN', description: 'Résiliation observée', example: 'Yes' },
+];
+
+// ═══════════════════════════════════════════
+// AIDE À LA RÉDACTION (aide-mémoire par section)
+// ═══════════════════════════════════════════
+const GUIDANCE = {
+  '1.1': { short: "Pose l'enjeu métier du churn et le contexte du secteur.", long: "Explique le contexte économique et concurrentiel qui justifie le projet : pourquoi le churn est un enjeu pour un opérateur télécom, quels coûts il représente, et ce qui motive une approche data. Termine sur la problématique de recherche qui structure tout le dossier." },
+  '1.2': { short: "Objectifs métier ET techniques, mesurables si possible.", long: "Distingue clairement les objectifs métier (ce que le projet doit permettre de faire pour l'entreprise) des objectifs techniques (ce que le pipeline doit démontrer). Évite de lister les blocs RNCP dans le texte, la structure du dossier s'en charge déjà." },
+  '1.3': { short: "Ce qui est inclus / exclu, plus une architecture théorique.", long: "Précise les frontières du projet : quelles données, quelles fonctionnalités, quel environnement (local vs cloud). Ajoute un paragraphe qui présente l'architecture de façon théorique (enchaînement des couches), attendu explicitement pour ce livrable." },
+  '2.1': { short: "Guide d'entretien + Experience Map.", long: "Documente comment tu as (ou aurais) mené la découverte du besoin : questions posées, interlocuteurs visés, et construis une Experience Map illustrant le parcours d'un client jusqu'à sa résiliation. Livrable attendu : guide d'entretien + Experience Map." },
+  '2.2': { short: "Ce qui existe déjà : données, outils, contraintes.", long: "Fais l'inventaire de ce qui est déjà disponible avant de commencer : données, accès, compétences du binôme, outils déjà maîtrisés. Sert à justifier certains choix ultérieurs (pourquoi tel outil plutôt qu'un autre)." },
+  '2.3': { short: "KPIs business / ML / technique, chacun argumenté.", long: "Structure les indicateurs en 3 catégories : KPIs business (impact churn évité), KPIs ML (précision, rappel du modèle), KPIs techniques (uptime API, latence). Pour chaque KPI, explique pourquoi il est pertinent, pas juste sa définition." },
+  '2.4': { short: "Comparatif d'au moins 3 solutions + RGPD/IA Act.", long: "Compare au moins 3 solutions techniques sur des critères objectifs (coût, maturité, courbe d'apprentissage, écosystème). Couvre aussi le volet réglementaire : RGPD et IA Act appliqués au traitement de données clients. Livrable : tableau comparatif + analyse critique." },
+  '2.5': { short: "SWOT + PESTEL argumentés, pas juste des mots-clés.", long: "Chaque item du SWOT et du PESTEL doit être justifié en une phrase, pas juste un mot-clé isolé. Ajoute un paragraphe RSE et accessibilité, explicitement demandé par le livrable attendu." },
+  '3.1': { short: "Le plus petit périmètre qui répond déjà à la problématique.", long: "Définis le plus petit ensemble de fonctionnalités qui démontre la valeur du projet (souvent : pipeline de base + modèle simple + API minimale). Explique ce qui est volontairement exclu du MVP et pourquoi." },
+  '3.2': { short: "Schéma global + flux + justification de CHAQUE techno.", long: "Fournis un schéma d'architecture complet (sources → stockage → traitement → exposition) et justifie chaque choix technologique individuellement, pas juste la stack dans son ensemble. C'est une des sections les plus scrutées en soutenance." },
+  '3.3': { short: "RGPD, éthique, accessibilité, RSE, mais concrètement.", long: "Ne reste pas généraliste : explique comment CE projet précis applique le RGPD (quelles données, quelle base légale), gère les biais potentiels du modèle, et intègre l'accessibilité et la sobriété numérique." },
+  '3.4': { short: "Risques, budget, regard critique sur ton propre MVP.", long: "Prends une posture critique envers ton MVP : quels sont ses risques (techniques, organisationnels, data), quel budget/temps il représente, et pourquoi ces arbitrages sont justifiés malgré leurs limites." },
+  '4.1': { short: "Détail de chaque source + exemples de données réelles.", long: "Pour chaque source (Kaggle, scraping Trustpilot, données synthétiques), précise le format, la fréquence de mise à jour, la fiabilité et les limites d'usage (licence, CGU). Inclus des exemples concrets de données collectées." },
+  '4.2': { short: "Schéma BDD détaillé (MCD/MLD/MPD).", long: "Présente le schéma relationnel complet avec les relations entre tables, en t'appuyant sur ton MCD/MLD/MPD. Explique les choix de normalisation et pourquoi certaines données vont dans Mongo plutôt que Postgres." },
+  '4.3': { short: "Pipeline fonctionnel, décrit étape par étape.", long: "Décris le pipeline concrètement, étape par étape (extraction, transformation, chargement), en identifiant clairement quel outil fait quoi (dbt, Prefect). Un schéma de flux aide beaucoup ici." },
+  '5.1': { short: "Dashboard + KPIs + un cas d'usage concret.", long: "Ne te contente pas de décrire le dashboard : explique un cas d'usage concret, qui l'utilise et pour quelle décision. Relie chaque visualisation à un KPI défini en 2.3." },
+  '5.2': { short: "Modèle + MLflow + gestion du drift.", long: "Présente le choix du modèle, ses performances, et surtout comment tu suis et gères sa dérive dans le temps via MLflow. Le jury attend un vrai raisonnement MLOps, pas juste un modèle entraîné une fois." },
+  '6.1': { short: "Endpoints, sécurité, doc Swagger.", long: "Liste les endpoints principaux, explique les mesures de sécurité (authentification, validation des entrées) et référence la documentation OpenAPI/Swagger générée automatiquement." },
+  '6.2': { short: "Docker + docker-compose, pensés dès le départ.", long: "Explique pourquoi la conteneurisation a été pensée dès le début du projet et pas ajoutée après coup, et détaille l'organisation du docker-compose (quels services, quelles dépendances entre eux)." },
+  '7.1': { short: "Scripts CI/CD + stratégie de déploiement.", long: "Décris le pipeline d'intégration continue (tests, lint) et la stratégie de déploiement envisagée, même si le CD complet reste optionnel. Justifie le choix de GitHub Actions." },
+  '7.2': { short: "Métriques DORA, logs, alertes.", long: "Présente les métriques DORA suivies, comment les logs sont collectés, et comment les alertes (Slack/email) sont déclenchées. Montre que tu penses à la fiabilité en continu, pas juste au lancement." },
+  '8.1': { short: "Épics et jalons, pas de détail de dev.", long: "Reste au niveau épics et jalons de validation, pas au niveau tâche de développement individuelle. Un visuel de timeline aide beaucoup à rendre cette section lisible pour le jury." },
+  '8.2': { short: "RH, technique, coûts, répartition du binôme.", long: "Détaille comment les ressources (temps, compétences, coûts d'infrastructure) sont réparties entre toi et Alexandre, et budgétise grossièrement les coûts (même en local, il y a un coût temps)." },
+  '8.3': { short: "Stratégie de tests + plan de maintenance.", long: "Explique ta stratégie de tests (unitaires, données, modèle) et comment le projet sera maintenu une fois livré : qui met à jour le modèle, à quelle fréquence, avec quel processus de validation." },
+  '9.0': { short: "Comment le projet serait adopté par ses utilisateurs.", long: "Même dans un contexte académique, explique comment un vrai lancement serait conduit : formation des utilisateurs métier, communication, gestion de la résistance au changement." },
+  '10.0': { short: "Bilan + perspectives, sans lister les blocs RNCP.", long: "Fais un bilan honnête (ce qui a fonctionné, ce qui a été difficile) et ouvre sur des perspectives d'évolution réalistes du projet, sans reformuler chaque bloc RNCP un par un." },
+  '11.0': { short: "Schémas, extraits de code, liens Git.", long: "Rassemble ici tout ce qui alourdirait le corps du dossier : schémas détaillés, extraits de code significatifs, liens vers le repo Git et les ressources externes (Whimsical, Canva, Drive)." },
+};
+
+// ═══════════════════════════════════════════
+// STATE + STORAGE
+// ═══════════════════════════════════════════
+let state = {
+  project: { ...PREFILL_PROJECT },
+  sections: {}, // { '1.1': { content: '...', images: [...] } }
+  swot: { ...PREFILL_SWOT },
+  pestel: { ...PREFILL_PESTEL },
+  dataDict: [],
+};
+let currentSectionId = null;
+let saveTimer = null;
+
+// Chargement : TOUT est regroupé dans une seule clé de stockage partagée.
+// Après plusieurs essais avec des clés séparées (une par section), l'API de
+// stockage a une limite de débit qui rend cette approche impraticable :
+// mieux vaut un seul appel de lecture et un seul appel d'écriture par
+// sauvegarde, quitte à accepter qu'une édition strictement simultanée sur
+// deux sections différentes puisse, rarement, en écraser une.
+async function loadFromStorage() {
+  const hasContent = v => v && v.content && v.content.trim().length > 0;
+  try {
+    const res = await window.storage.get('filrouge-state', true);
+    const loaded = res && res.value ? JSON.parse(res.value) : null;
+
+    state.project = { ...PREFILL_PROJECT, ...((loaded && loaded.project) || {}) };
+    state.swot = { ...PREFILL_SWOT, ...((loaded && loaded.swot) || {}) };
+    state.pestel = { ...PREFILL_PESTEL, ...((loaded && loaded.pestel) || {}) };
+    state.dataDict = (loaded && Array.isArray(loaded.dataDict) && loaded.dataDict.length)
+      ? loaded.dataDict
+      : [...PREFILL_DATADICT];
+
+    const allIds = flatSections().map(s => s.id);
+    state.sections = {};
+    allIds.forEach(id => {
+      const val = loaded && loaded.sections && loaded.sections[id];
+      if (hasContent(val)) {
+        state.sections[id] = val;
+      } else if (PREFILL[id]) {
+        const imgs = (val && val.images) || [];
+        state.sections[id] = { content: PREFILL[id], images: imgs };
+      } else {
+        state.sections[id] = val || { content: '' };
+      }
+    });
+  } catch (e) {
+    console.error('Erreur de chargement, repli sur les valeurs par défaut', e);
+    state.project = { ...PREFILL_PROJECT };
+    state.swot = { ...PREFILL_SWOT };
+    state.pestel = { ...PREFILL_PESTEL };
+    state.dataDict = [...PREFILL_DATADICT];
+    state.sections = {};
+    Object.keys(PREFILL).forEach(id => { state.sections[id] = { content: PREFILL[id] }; });
+  }
+}
+
+async function persist() {
+  try {
+    const payload = {
+      project: state.project,
+      sections: state.sections,
+      swot: state.swot,
+      pestel: state.pestel,
+      dataDict: state.dataDict,
+    };
+    await window.storage.set('filrouge-state', JSON.stringify(payload), true);
+  } catch (e) {
+    console.error('Erreur de sauvegarde', e);
+  }
+}
+
+// Ces fonctions gardent leur nom d'origine (utilisé partout ailleurs dans le
+// code) mais délèguent maintenant toutes à la même sauvegarde groupée.
+async function saveSectionData(id) { await persist(); }
+async function saveProjectData() { await persist(); }
+async function saveSwotData() { await persist(); }
+async function savePestelData() { await persist(); }
+async function saveDataDictData() { await persist(); }
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function switchView(view, sectionId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  if (view === 'section') {
+    document.getElementById('view-section').classList.add('active');
+    openSection(sectionId);
+  } else {
+    document.getElementById('view-' + view).classList.add('active');
+    const nav = document.querySelector(`.nav-item[data-view="${view}"]`);
+    if (nav) nav.classList.add('active');
+  }
+
+  if (view === 'dashboard') updateDashboard();
+  if (view === 'projet') fillProjectForm();
+  if (view === 'blocs') renderBlocs();
+  if (view === 'swotpestel') fillSwotPestelForm();
+  if (view === 'datadict') renderDataDict();
+
+  renderSectionTree();
+}
+
+function renderSectionTree() {
+  const el = document.getElementById('sectionTree');
+  el.innerHTML = '';
+  ETAPES.forEach(etape => {
+    const done = etape.sections.filter(s => hasContent(s.id)).length;
+    const block = document.createElement('div');
+    block.className = 'etape-block';
+    block.innerHTML = `
+      <div class="etape-head">
+        <span>${etape.label}</span>
+        <span class="etape-progress">${done}/${etape.sections.length}</span>
+      </div>
+      <div class="sub-list">
+        ${etape.sections.map(s => `
+          <div class="sub-item ${currentSectionId === s.id ? 'active' : ''}" onclick="switchView('section','${s.id}')" title="${escapeAttr(GUIDANCE[s.id]?.short || '')}">
+            <span class="sub-check ${hasContent(s.id) ? 'done' : ''}"></span>
+            <span>${s.id} · ${s.titre}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    el.appendChild(block);
+  });
+}
+
+function hasContent(id) {
+  return !!(state.sections[id] && state.sections[id].content && state.sections[id].content.trim().length > 0);
+}
+
+function findSection(id) {
+  return flatSections().find(s => s.id === id);
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function updateDashboard() {
+  const all = flatSections();
+  const done = all.filter(s => hasContent(s.id));
+  const words = done.reduce((acc, s) => acc + (state.sections[s.id].content.trim().split(/\s+/).length), 0);
+  const blocsTouched = new Set();
+  done.forEach(s => s.bloc.forEach(b => blocsTouched.add(b)));
+
+  document.getElementById('statDone').textContent = done.length;
+  document.getElementById('statTotal').textContent = all.length;
+  document.getElementById('statWords').textContent = words;
+  document.getElementById('statBlocs').textContent = `${blocsTouched.size}/4`;
+  document.getElementById('globalProgress').style.width = Math.round((done.length / all.length) * 100) + '%';
+
+  const p = state.project;
+  document.getElementById('dashProjectSummary').innerHTML = `
+    <strong style="color:var(--text)">${p.nom || 'non renseigné'}</strong> · ${p.domaine || 'domaine non renseigné'}<br>
+    Binôme : ${p.binome || 'non renseigné'}<br>
+    ${p.problematique ? p.problematique.slice(0, 220) + (p.problematique.length > 220 ? '…' : '') : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════
+// PROJET
+// ═══════════════════════════════════════════
+function fillProjectForm() {
+  const p = state.project;
+  document.getElementById('p_nom').value = p.nom || '';
+  document.getElementById('p_domaine').value = p.domaine || '';
+  document.getElementById('p_binome').value = p.binome || '';
+  document.getElementById('p_problematique').value = p.problematique || '';
+  document.getElementById('p_stack').value = p.stack || '';
+  document.getElementById('p_donnees').value = p.donnees || '';
+  document.getElementById('p_entreprise').value = p.entreprise || '';
+}
+
+async function saveProject() {
+  state.project = {
+    nom: document.getElementById('p_nom').value,
+    domaine: document.getElementById('p_domaine').value,
+    binome: document.getElementById('p_binome').value,
+    problematique: document.getElementById('p_problematique').value,
+    stack: document.getElementById('p_stack').value,
+    donnees: document.getElementById('p_donnees').value,
+    entreprise: document.getElementById('p_entreprise').value,
+  };
+  await saveProjectData();
+  flashSaved('projectSaveStatus');
+}
+
+// ═══════════════════════════════════════════
+// SECTION EDITOR
+// ═══════════════════════════════════════════
+function openSection(id) {
+  currentSectionId = id;
+  const s = findSection(id);
+  if (!s) return;
+
+  document.getElementById('sectionEditorHead').innerHTML = `
+    <h1 class="page-title">${s.id} · ${s.titre}</h1>
+    <p class="page-desc">Section du dossier fil rouge RNCP38919.</p>
+  `;
+  document.getElementById('sectionBadges').innerHTML = s.bloc.map(b => `<span class="badge" title="${BLOCS[b]}">${b}</span>`).join('') || '<span class="badge" style="opacity:.5">Aucun bloc spécifique</span>';
+  document.getElementById('sectionLivrable').innerHTML = s.livrable ? `<div class="livrable-note">📎 Livrable attendu : ${s.livrable}</div>` : '';
+  const g = GUIDANCE[s.id];
+  document.getElementById('sectionGuidance').innerHTML = g ? `
+    <details class="guidance-box" open>
+      <summary>💡 Aide à la rédaction</summary>
+      <p>${g.long}</p>
+    </details>
+  ` : '';
+
+  const content = (state.sections[id] && state.sections[id].content) || '';
+  document.getElementById('sectionContent').value = content;
+  updateWordCount(content);
+
+  renderSectionTree();
+  renderSectionImages();
+}
+
+function onSectionInput() {
+  const val = document.getElementById('sectionContent').value;
+  updateWordCount(val);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSection, 900);
+}
+
+function updateWordCount(text) {
+  const n = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const el = document.getElementById('sectionWordCount');
+  el.textContent = `${n} mots (cible : 300-600)`;
+  el.classList.remove('wc-ok', 'wc-warn', 'wc-bad');
+  if (n === 0) {
+    el.classList.add('wc-bad');
+  } else if (n >= 300 && n <= 600) {
+    el.classList.add('wc-ok');
+  } else if ((n >= 200 && n < 300) || (n > 600 && n <= 750)) {
+    el.classList.add('wc-warn');
+  } else {
+    el.classList.add('wc-bad');
+  }
+}
+
+async function saveSection() {
+  if (!currentSectionId) return;
+  const val = document.getElementById('sectionContent').value;
+  state.sections[currentSectionId] = { ...(state.sections[currentSectionId] || {}), content: val };
+  await saveSectionData(currentSectionId);
+  flashSaved('sectionSaveStatus');
+  renderSectionTree();
+}
+
+function copySectionPrompt() {
+  const s = findSection(currentSectionId);
+  const p = state.project;
+  const prompt = `Rédige la section "${s.id} · ${s.titre}" du dossier fil rouge RNCP38919 (blocs ${s.bloc.join(', ') || 'aucun'}).
+Projet : ${p.nom} · ${p.domaine}
+Problématique : ${p.problematique}
+Stack : ${p.stack}
+${s.livrable ? 'Livrable attendu : ' + s.livrable : ''}
+Ton : professionnel, niveau Bac+5, 300-600 mots, prose structurée.
+Contrainte de style : ne pas utiliser de tirets cadratins (—) ; préférer virgules, points ou parenthèses.`;
+  navigator.clipboard.writeText(prompt).then(() => alert('Prompt copié : colle-le dans la conversation pour que je rédige la section.'));
+}
+
+// ═══════════════════════════════════════════
+// IMAGES PAR SECTION
+// ═══════════════════════════════════════════
+const imageCache = {}; // { imgId: dataUrl }
+const MAX_IMG_BYTES = 3.5 * 1024 * 1024;
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(new Error('Lecture du fichier impossible'));
+    r.readAsDataURL(file);
+  });
+}
+
+function genId() {
+  return (crypto.randomUUID ? crypto.randomUUID() : 'img-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+async function handleImageUpload(fileList) {
+  if (!currentSectionId || !fileList || !fileList.length) return;
+  if (!state.sections[currentSectionId]) state.sections[currentSectionId] = { content: '' };
+  if (!state.sections[currentSectionId].images) state.sections[currentSectionId].images = [];
+
+  for (const file of Array.from(fileList)) {
+    if (file.size > MAX_IMG_BYTES) {
+      alert(`"${file.name}" dépasse ~3,5 Mo et ne sera pas ajoutée. Compresse-la d'abord.`);
+      continue;
+    }
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      const id = genId();
+      await window.storage.set('img:' + id, dataUrl, true);
+      imageCache[id] = dataUrl;
+      state.sections[currentSectionId].images.push({ id, name: file.name });
+    } catch (e) {
+      console.error('Erreur upload image', e);
+      alert(`Erreur lors de l'ajout de "${file.name}".`);
+    }
+  }
+  await saveSectionData(currentSectionId);
+  renderSectionImages();
+  renderSectionTree();
+}
+
+async function renderSectionImages() {
+  const grid = document.getElementById('sectionImgGrid');
+  if (!grid || !currentSectionId) return;
+  const images = (state.sections[currentSectionId] && state.sections[currentSectionId].images) || [];
+  grid.innerHTML = '';
+  for (const img of images) {
+    let dataUrl = imageCache[img.id];
+    if (!dataUrl) {
+      try {
+        const res = await window.storage.get('img:' + img.id, true);
+        dataUrl = res && res.value;
+        if (dataUrl) imageCache[img.id] = dataUrl;
+      } catch (e) {
+        dataUrl = null;
+      }
+    }
+    const cell = document.createElement('div');
+    cell.className = 'img-thumb' + (img.name.startsWith('schema-') ? ' contain' : '');
+    cell.innerHTML = `
+      ${dataUrl ? `<img src="${dataUrl}" alt="${img.name}">` : `<div style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px">Introuvable</div>`}
+      <button class="img-thumb-del" title="Supprimer" onclick="deleteSectionImage('${img.id}')">×</button>
+      <div class="img-thumb-name">${img.name}</div>
+    `;
+    grid.appendChild(cell);
+  }
+}
+
+async function deleteSectionImage(imgId) {
+  if (!currentSectionId) return;
+  const arr = state.sections[currentSectionId].images || [];
+  state.sections[currentSectionId].images = arr.filter(i => i.id !== imgId);
+  delete imageCache[imgId];
+  try { await window.storage.delete('img:' + imgId, true); } catch (e) { /* déjà absent */ }
+  await saveSectionData(currentSectionId);
+  renderSectionImages();
+  renderSectionTree();
+}
+
+function flashSaved(id) {
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+// ═══════════════════════════════════════════
+// SWOT & PESTEL
+// ═══════════════════════════════════════════
+let swotPestelTimer = null;
+
+function fillSwotPestelForm() {
+  document.getElementById('sp_forces').value = state.swot.forces || '';
+  document.getElementById('sp_faiblesses').value = state.swot.faiblesses || '';
+  document.getElementById('sp_opportunites').value = state.swot.opportunites || '';
+  document.getElementById('sp_menaces').value = state.swot.menaces || '';
+
+  document.getElementById('sp_politique').value = state.pestel.politique || '';
+  document.getElementById('sp_economique').value = state.pestel.economique || '';
+  document.getElementById('sp_sociologique').value = state.pestel.sociologique || '';
+  document.getElementById('sp_technologique').value = state.pestel.technologique || '';
+  document.getElementById('sp_ecologique').value = state.pestel.ecologique || '';
+  document.getElementById('sp_legal').value = state.pestel.legal || '';
+}
+
+function onSwotPestelInput() {
+  clearTimeout(swotPestelTimer);
+  swotPestelTimer = setTimeout(saveSwotPestel, 900);
+}
+
+async function saveSwotPestel() {
+  state.swot = {
+    forces: document.getElementById('sp_forces').value,
+    faiblesses: document.getElementById('sp_faiblesses').value,
+    opportunites: document.getElementById('sp_opportunites').value,
+    menaces: document.getElementById('sp_menaces').value,
+  };
+  state.pestel = {
+    politique: document.getElementById('sp_politique').value,
+    economique: document.getElementById('sp_economique').value,
+    sociologique: document.getElementById('sp_sociologique').value,
+    technologique: document.getElementById('sp_technologique').value,
+    ecologique: document.getElementById('sp_ecologique').value,
+    legal: document.getElementById('sp_legal').value,
+  };
+  await persist();
+  flashSaved('swotPestelSaveStatus');
+}
+
+function pushSwotPestelToSection() {
+  const s = state.swot, p = state.pestel;
+  const text = `Forces\n${s.forces}\n\nFaiblesses\n${s.faiblesses}\n\nOpportunités\n${s.opportunites}\n\nMenaces\n${s.menaces}\n\nPESTEL\n\nPolitique : ${p.politique}\n\nÉconomique : ${p.economique}\n\nSociologique : ${p.sociologique}\n\nTechnologique : ${p.technologique}\n\nÉcologique : ${p.ecologique}\n\nLégal : ${p.legal}`;
+  state.sections['2.5'] = { ...(state.sections['2.5'] || {}), content: text };
+  saveSectionData('2.5');
+  alert("Contenu copié dans la section 2.5. Ouvre 'Rédaction dossier > 2.5' pour l'ajuster.");
+  renderSectionTree();
+}
+
+// ── Génération des schémas SWOT / PESTEL en SVG puis image ──
+
+function escapeSvg(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function wrapTextLines(text, maxChars) {
+  const rawLines = (text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const out = [];
+  rawLines.forEach(raw => {
+    const words = raw.split(/\s+/);
+    let cur = '';
+    words.forEach(w => {
+      const test = cur ? cur + ' ' + w : w;
+      if (test.length > maxChars) {
+        if (cur) out.push(cur);
+        cur = w;
+      } else {
+        cur = test;
+      }
+    });
+    if (cur) out.push(cur);
+  });
+  return out;
+}
+
+function measureBlock(width, text, maxLines) {
+  const maxChars = Math.floor((width - 32) / 6.6);
+  let lines = wrapTextLines(text, maxChars);
+  let truncated = false;
+  if (lines.length > maxLines) { lines = lines.slice(0, maxLines); truncated = true; }
+  const lineHeight = 16;
+  return { lines, truncated, lineHeight, height: lines.length * lineHeight };
+}
+
+function renderQuadrant(x, y, w, title, measured, color) {
+  const h = 56 + measured.height + 16;
+  let body = '';
+  measured.lines.forEach((l, i) => {
+    body += `<text x="${x+16}" y="${y+50+i*measured.lineHeight}" font-size="11" fill="#cbd5e1" font-family="Arial, sans-serif">${escapeSvg(l)}</text>`;
+  });
+  if (measured.truncated) {
+    body += `<text x="${x+16}" y="${y+50+measured.lines.length*measured.lineHeight}" font-size="11" fill="#64748b" font-family="Arial, sans-serif">…</text>`;
+  }
+  return { h, markup: `
+<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="#13161e" stroke="${color}" stroke-width="1"/>
+<rect x="${x}" y="${y}" width="${w}" height="3" fill="${color}"/>
+<text x="${x+16}" y="${y+30}" font-size="16" fill="${color}" font-family="Georgia, serif">${escapeSvg(title)}</text>
+${body}` };
+}
+
+function buildSwotSVG() {
+  const w = 290, gap = 14, y1 = 60;
+  const mF  = measureBlock(w, state.swot.forces, 11);
+  const mFa = measureBlock(w, state.swot.faiblesses, 11);
+  const mO  = measureBlock(w, state.swot.opportunites, 11);
+  const mM  = measureBlock(w, state.swot.menaces, 11);
+
+  const rF  = renderQuadrant(40,  y1, w, 'Forces',       mF,  '#34d399');
+  const rFa = renderQuadrant(350, y1, w, 'Faiblesses',   mFa, '#fb923c');
+  const row1H = Math.max(rF.h, rFa.h);
+  const y2 = y1 + row1H + gap;
+  const rO  = renderQuadrant(40,  y2, w, 'Opportunités', mO,  '#6c8fff');
+  const rM  = renderQuadrant(350, y2, w, 'Menaces',      mM,  '#f87171');
+  const row2H = Math.max(rO.h, rM.h);
+  const totalH = y2 + row2H + 40;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="680" height="${totalH}" viewBox="0 0 680 ${totalH}">
+<rect x="0" y="0" width="680" height="${totalH}" fill="#0d0f14"/>
+<text x="40" y="34" font-size="19" fill="#e2e8f0" font-family="Georgia, serif">Matrice SWOT</text>
+${rF.markup}${rFa.markup}${rO.markup}${rM.markup}
+</svg>`;
+  return { svg, height: totalH };
+}
+
+function renderPestelRow(x, y, w, factor, measured) {
+  const h = Math.max(60, measured.height + 30);
+  const cy = y + h / 2;
+  let body = '';
+  measured.lines.forEach((l, i) => {
+    const lineY = y + h/2 - (measured.height/2) + i*measured.lineHeight + 11;
+    body += `<text x="${x+150}" y="${lineY}" font-size="11" fill="#cbd5e1" font-family="Arial, sans-serif">${escapeSvg(l)}</text>`;
+  });
+  return { h, markup: `
+<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="#13161e" stroke="#252a38" stroke-width="1"/>
+<rect x="${x}" y="${y}" width="3" height="${h}" fill="${factor.color}"/>
+<circle cx="${x+35}" cy="${cy}" r="13" fill="${factor.color}"/>
+<text x="${x+35}" y="${cy+4}" font-size="12" fill="#0d0f14" font-family="Arial, sans-serif" text-anchor="middle">${escapeSvg(factor.letter)}</text>
+<text x="${x+68}" y="${cy+4}" font-size="13" fill="#e2e8f0" font-family="Arial, sans-serif">${escapeSvg(factor.label)}</text>
+${body}` };
+}
+
+function buildPestelSVG() {
+  const factors = [
+    { key: 'politique',     label: 'Politique',     letter: 'P', color: '#6c8fff' },
+    { key: 'economique',    label: 'Économique',    letter: 'É', color: '#fbbf24' },
+    { key: 'sociologique',  label: 'Sociologique',  letter: 'S', color: '#f472b6' },
+    { key: 'technologique', label: 'Technologique', letter: 'T', color: '#2dd4bf' },
+    { key: 'ecologique',    label: 'Écologique',    letter: 'É', color: '#34d399' },
+    { key: 'legal',         label: 'Légal',          letter: 'L', color: '#a78bfa' },
+  ];
+  const x = 40, w = 600, gap = 12;
+  let y = 60, body = '';
+  factors.forEach(f => {
+    const measured = measureBlock(w - 150, state.pestel[f.key], 6);
+    const row = renderPestelRow(x, y, w, f, measured);
+    body += row.markup;
+    y += row.h + gap;
+  });
+  const totalH = y + 30;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="680" height="${totalH}" viewBox="0 0 680 ${totalH}">
+<rect x="0" y="0" width="680" height="${totalH}" fill="#0d0f14"/>
+<text x="40" y="34" font-size="19" fill="#e2e8f0" font-family="Georgia, serif">Analyse PESTEL</text>
+${body}
+</svg>`;
+  return { svg, height: totalH };
+}
+
+function svgToPngDataUrl(svgString, width, height) {
+  return new Promise((resolve, reject) => {
+    const svgData = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error('Le SVG généré n\'a pas pu être chargé comme image.'));
+    img.src = svgData;
+  });
+}
+
+async function insertSwotPestelImages() {
+  await saveSwotPestel();
+  try {
+    const swot = buildSwotSVG();
+    const pestel = buildPestelSVG();
+    const [swotPng, pestelPng] = await Promise.all([
+      svgToPngDataUrl(swot.svg, 680, swot.height),
+      svgToPngDataUrl(pestel.svg, 680, pestel.height),
+    ]);
+
+    if (!state.sections['2.5']) state.sections['2.5'] = { content: '' };
+    if (!state.sections['2.5'].images) state.sections['2.5'].images = [];
+    // on retire les schémas générés précédemment pour éviter les doublons
+    for (const img of state.sections['2.5'].images.filter(i => i.name.startsWith('schema-'))) {
+      try { await window.storage.delete('img:' + img.id, true); } catch (e) {}
+    }
+    state.sections['2.5'].images = state.sections['2.5'].images.filter(i => !i.name.startsWith('schema-'));
+
+    const id1 = genId();
+    await window.storage.set('img:' + id1, swotPng, true);
+    imageCache[id1] = swotPng;
+    state.sections['2.5'].images.push({ id: id1, name: 'schema-swot.png' });
+
+    const id2 = genId();
+    await window.storage.set('img:' + id2, pestelPng, true);
+    imageCache[id2] = pestelPng;
+    state.sections['2.5'].images.push({ id: id2, name: 'schema-pestel.png' });
+
+    await saveSectionData('2.5');
+    alert("Schémas insérés dans la section 2.5. Ouvre 'Rédaction dossier > 2.5' pour les voir.");
+    renderSectionTree();
+    if (currentSectionId === '2.5') renderSectionImages();
+  } catch (e) {
+    console.error('Erreur génération schémas', e);
+    alert("Erreur lors de la génération des schémas : " + (e && e.message ? e.message : 'erreur inconnue') + ". Regarde la console du navigateur pour plus de détail.");
+  }
+}
+
+// ═══════════════════════════════════════════
+// DICTIONNAIRE DE DONNÉES
+// ═══════════════════════════════════════════
+let dictSaveTimer = null;
+
+function escapeAttr(v) {
+  return String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function renderDataDict() {
+  const tbody = document.getElementById('dictTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  state.dataDict.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${escapeAttr(row.table)}" oninput="updateDictCell(${idx},'table',this.value)"></td>
+      <td><input type="text" value="${escapeAttr(row.field)}" oninput="updateDictCell(${idx},'field',this.value)"></td>
+      <td><input type="text" value="${escapeAttr(row.type)}" oninput="updateDictCell(${idx},'type',this.value)"></td>
+      <td><input type="text" value="${escapeAttr(row.description)}" oninput="updateDictCell(${idx},'description',this.value)"></td>
+      <td><input type="text" value="${escapeAttr(row.example)}" oninput="updateDictCell(${idx},'example',this.value)"></td>
+      <td><button class="dict-row-del" title="Supprimer la ligne" onclick="removeDictRow(${idx})">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateDictCell(idx, key, value) {
+  if (!state.dataDict[idx]) return;
+  state.dataDict[idx][key] = value;
+  clearTimeout(dictSaveTimer);
+  dictSaveTimer = setTimeout(saveDataDict, 900);
+}
+
+function addDictRow() {
+  state.dataDict.push({ table: '', field: '', type: '', description: '', example: '' });
+  renderDataDict();
+  saveDataDict();
+}
+
+function removeDictRow(idx) {
+  state.dataDict.splice(idx, 1);
+  renderDataDict();
+  saveDataDict();
+}
+
+async function saveDataDict() {
+  await saveDataDictData();
+  flashSaved('dictSaveStatus');
+}
+
+// ═══════════════════════════════════════════
+// BLOCS
+// ═══════════════════════════════════════════
+function renderBlocs() {
+  const el = document.getElementById('blocGrid');
+  el.innerHTML = '';
+  Object.keys(BLOCS).forEach(code => {
+    const relevant = flatSections().filter(s => s.bloc.includes(code));
+    el.innerHTML += `
+      <div class="bloc-card">
+        <h4>${code}</h4>
+        <div class="bloc-intitule">${BLOCS[code]}</div>
+        <div class="bloc-sections">
+          ${relevant.map(s => `<span class="bloc-tag ${hasContent(s.id) ? 'done' : ''}">${s.id}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  });
+}
+
+// ═══════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════
+function buildExportText() {
+  const p = state.project;
+  let out = `# Dossier Fil Rouge (RNCP38919)\n\n`;
+  out += `**Projet :** ${p.nom}\n**Domaine :** ${p.domaine}\n**Binôme :** ${p.binome}\n\n---\n\n`;
+  ETAPES.forEach(etape => {
+    out += `## ${etape.label}\n\n`;
+    etape.sections.forEach(s => {
+      out += `### ${s.id} ${s.titre}\n`;
+      out += `*Blocs : ${s.bloc.join(', ') || 'aucun'}*${s.livrable ? ' · *Livrable : ' + s.livrable + '*' : ''}\n\n`;
+      const content = state.sections[s.id]?.content;
+      out += content && content.trim() ? content + '\n\n' : '*[Section non rédigée]*\n\n';
+      const imgs = state.sections[s.id]?.images || [];
+      if (imgs.length) {
+        out += `_${imgs.length} image(s) jointe(s) : ${imgs.map(i => i.name).join(', ')}. Utilise l'export .html pour les visuels._\n\n`;
+      }
+    });
+  });
+  return out;
+}
+
+async function buildExportHTML() {
+  const p = state.project;
+  let body = `<h1>Dossier Fil Rouge (RNCP38919)</h1>
+<p><strong>Projet :</strong> ${escapeHtml(p.nom)}<br><strong>Domaine :</strong> ${escapeHtml(p.domaine)}<br><strong>Binôme :</strong> ${escapeHtml(p.binome)}</p><hr>`;
+
+  for (const etape of ETAPES) {
+    body += `<h2>${escapeHtml(etape.label)}</h2>`;
+    for (const s of etape.sections) {
+      body += `<h3>${s.id} ${escapeHtml(s.titre)}</h3>`;
+      body += `<p class="meta">Blocs : ${s.bloc.join(', ') || 'aucun'}${s.livrable ? ' · Livrable : ' + escapeHtml(s.livrable) : ''}</p>`;
+      const content = state.sections[s.id]?.content;
+      body += content && content.trim()
+        ? `<p>${escapeHtml(content).replace(/\n/g, '<br>')}</p>`
+        : `<p class="empty">[Section non rédigée]</p>`;
+
+      const imgs = state.sections[s.id]?.images || [];
+      if (imgs.length) {
+        body += `<div class="imgs">`;
+        for (const img of imgs) {
+          let dataUrl = imageCache[img.id];
+          if (!dataUrl) {
+            try {
+              const res = await window.storage.get('img:' + img.id, true);
+              dataUrl = res && res.value;
+            } catch (e) { dataUrl = null; }
+          }
+          if (dataUrl) {
+            body += `<figure><img src="${dataUrl}" alt="${escapeHtml(img.name)}"><figcaption>${escapeHtml(img.name)}</figcaption></figure>`;
+          }
+        }
+        body += `</div>`;
+      }
+      body += `<hr>`;
+    }
+  }
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Dossier Fil Rouge (RNCP38919)</title>
+<style>
+body{font-family:Georgia,serif;max-width:840px;margin:40px auto;padding:0 24px;line-height:1.6;color:#1a1a1a}
+h1{font-size:26px} h2{font-size:20px;margin-top:40px;border-bottom:2px solid #333;padding-bottom:6px}
+h3{font-size:16px;margin-top:28px} .meta{font-size:12px;color:#666;font-style:italic}
+.empty{color:#999;font-style:italic} hr{border:none;border-top:1px solid #ddd;margin:20px 0}
+.imgs{display:flex;flex-wrap:wrap;gap:16px;margin:14px 0}
+.imgs figure{margin:0;max-width:320px} .imgs img{max-width:100%;border:1px solid #ccc;border-radius:4px}
+.imgs figcaption{font-size:11px;color:#777;margin-top:4px}
+</style></head><body>${body}</body></html>`;
+}
+
+function generateExport() {
+  document.getElementById('exportPreview').value = buildExportText();
+}
+
+function downloadExport() {
+  const text = buildExportText();
+  const blob = new Blob([text], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Dossier-FilRouge-RNCP38919-${(state.project.nom || 'projet').replace(/\s+/g,'-')}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function downloadExportHTML() {
+  const html = await buildExportHTML();
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Dossier-FilRouge-RNCP38919-${(state.project.nom || 'projet').replace(/\s+/g,'-')}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Export Word : génère un document HTML avec les balises spécifiques Word
+// (namespaces o:/w:), reconnu nativement par Word/LibreOffice sans passer
+// par une vraie librairie .docx (bloquée par le sandbox de l'artefact, qui
+// empêche le chargement de scripts externes comme docx.js).
+async function buildExportDocHtml() {
+  const p = state.project;
+  let body = `<h1>Dossier Fil Rouge (RNCP38919)</h1>
+<p><b>Projet :</b> ${escapeHtml(p.nom)}<br><b>Domaine :</b> ${escapeHtml(p.domaine)}<br><b>Binôme :</b> ${escapeHtml(p.binome)}</p>
+<hr>`;
+
+  for (const etape of ETAPES) {
+    body += `<h1>${escapeHtml(etape.label)}</h1>`;
+    for (const s of etape.sections) {
+      body += `<h2>${s.id} ${escapeHtml(s.titre)}</h2>`;
+      body += `<p><i style="color:#888888">Blocs : ${s.bloc.join(', ') || 'aucun'}${s.livrable ? ' &middot; Livrable : ' + escapeHtml(s.livrable) : ''}</i></p>`;
+
+      const content = state.sections[s.id]?.content;
+      body += content && content.trim()
+        ? content.split('\n').filter(l => l.trim()).map(l => `<p>${escapeHtml(l)}</p>`).join('\n')
+        : `<p><i style="color:#999999">[Section non rédigée]</i></p>`;
+
+      const imgs = state.sections[s.id]?.images || [];
+      if (imgs.length) {
+        for (const img of imgs) {
+          let dataUrl = imageCache[img.id];
+          if (!dataUrl) {
+            try {
+              const res = await window.storage.get('img:' + img.id, true);
+              dataUrl = res && res.value;
+            } catch (e) { dataUrl = null; }
+          }
+          if (dataUrl) {
+            body += `<p><img src="${dataUrl}" style="max-width:500px;"><br><i style="font-size:10pt;color:#777777">${escapeHtml(img.name)}</i></p>`;
+          }
+        }
+      }
+    }
+  }
+
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.4; }
+h1 { font-size: 16pt; margin-top: 22pt; border-bottom: 1px solid #333333; padding-bottom: 4pt; }
+h2 { font-size: 13pt; margin-top: 14pt; }
+p { margin: 6pt 0; }
+</style>
+</head>
+<body>${body}</body>
+</html>`;
+}
+
+async function downloadExportDocx() {
+  try {
+    const html = await buildExportDocHtml();
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Dossier-FilRouge-RNCP38919-${(state.project.nom || 'projet').replace(/\s+/g,'-')}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Erreur export Word', e);
+    alert("Erreur lors de la génération du document Word : " + (e.message || 'erreur inconnue'));
+  }
+}
+
+function copyExport() {
+  const text = document.getElementById('exportPreview').value || buildExportText();
+  navigator.clipboard.writeText(text).then(() => alert('Dossier copié dans le presse-papier !'));
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadFromStorage();
+  renderSectionTree();
+  updateDashboard();
+});
+</script>
+</body>
+</html>

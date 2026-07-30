@@ -1,0 +1,42 @@
+Table;Attribute_name;Elements;Description;Data_type;Character length;Acceptable_values;Required;Acceptable_null
+client;customerID;Identifiant (PK);Identifiant unique du client;String;10;9999-XXXXX (ex: 7590-VHVEG);oui;non
+client;gender;Categorie;Genre du client;String;6;Female / Male;oui;non
+client;SeniorCitizen;Booleen;Client senior (65 ans et plus);Integer;1;0 / 1;oui;non
+client;Partner;Booleen;Client en couple / avec partenaire;String;3;Yes / No;oui;non
+client;Dependents;Booleen;Personnes a charge;String;3;Yes / No;oui;non
+client;zipcode;Categorie;Code postal US (ZCTA) - cle d'enrichissement geo;String;5;99999 (ex: 10451);oui;non
+client;Churn;Booleen;VARIABLE CIBLE - depart du client;String;3;Yes / No;oui;non
+contrat;customerID;Cle etrangere (FK);Reference vers client;String;10;-> client.customerID;oui;non
+contrat;tenure;Numerique;Anciennete du client (en mois);Integer;2;0 - 72;oui;non
+contrat;Contract;Categorie;Type d'engagement contractuel;String;14;Month-to-month / One year / Two year;oui;non
+contrat;PaperlessBilling;Booleen;Facturation dematerialisee;String;3;Yes / No;oui;non
+contrat;PaymentMethod;Categorie;Moyen de paiement;String;25;Electronic check / Mailed check / Bank transfer (automatic) / Credit card (automatic);oui;non
+contrat;MonthlyCharges;Numerique;Montant mensuel facture (USD);Float;6;18.25 - 118.75;oui;non
+contrat;TotalCharges;Numerique;Montant total facture depuis l'abonnement (USD);Float;8;0 - 8684.80 (11 valeurs vides a nettoyer);oui;non
+services;customerID;Cle etrangere (FK);Reference vers client;String;10;-> client.customerID;oui;non
+services;PhoneService;Booleen;Souscription service telephonique;String;3;Yes / No;oui;non
+services;MultipleLines;Categorie;Lignes telephoniques multiples;String;16;Yes / No / No phone service;oui;non
+services;InternetService;Categorie;Type d'acces internet;String;11;DSL / Fiber optic / No;oui;non
+services;OnlineSecurity;Categorie;Option securite en ligne;String;19;Yes / No / No internet service;oui;non
+services;OnlineBackup;Categorie;Option sauvegarde en ligne;String;19;Yes / No / No internet service;oui;non
+services;DeviceProtection;Categorie;Option protection des appareils;String;19;Yes / No / No internet service;oui;non
+services;TechSupport;Categorie;Option support technique;String;19;Yes / No / No internet service;oui;non
+services;StreamingTV;Categorie;Option streaming TV;String;19;Yes / No / No internet service;oui;non
+services;StreamingMovies;Categorie;Option streaming films;String;19;Yes / No / No internet service;oui;non
+satisfaction;customerID;Cle etrangere (FK);Reference vers client;String;10;-> client.customerID;oui;non
+satisfaction;nb_appels_support;Numerique;Nombre d'appels passes au support;Integer;2;0 - 50;oui;non
+satisfaction;duree_moy_appel_min;Numerique;Duree moyenne d'un appel (minutes);Integer;3;0 - 60;oui;non
+satisfaction;score_satisfaction;Score;Score de satisfaction client (echelle 1 a 5);Float;3;1.0 - 5.0;oui;non
+satisfaction;nps_score;Score;Net Promoter Score du client;Integer;3;-100 - 100;oui;non
+satisfaction;motif_contact_principal;Categorie;Motif principal de contact support;String;30;Assistance technique / Changement forfait / Facturation / Resiliation / Autre;oui;non
+satisfaction;derniere_interaction_jours;Duree;Jours depuis la derniere interaction;Integer;3;0 - 365;oui;non
+satisfaction;incident_facturation;Booleen;Presence d'un incident de facturation;Integer;1;0 / 1;oui;non
+feedback;customerID;Cle etrangere (FK);Reference vers client;String;10;-> client.customerID;oui;non
+feedback;CustomerFeedback;Texte libre;Verbatim client (genere par LLM - a documenter);String;500;Texte libre;non;oui
+feedback;feedback_length;Numerique;Longueur du feedback (nb de caracteres);Integer;4;0 - 2000;non;oui
+feedback;sentiment;Score;Score de sentiment du feedback (negatif a positif);Float;5;-1.0 - 1.0;non;oui
+feedback;HasFeedback;Booleen;Presence d'un feedback pour ce client;Boolean;5;True / False;oui;non
+enrichissement_geo;zipcode;Identifiant (PK);Code postal / ZCTA (source US Census ACS 2022);String;5;99999 (ex: 10451);oui;non
+enrichissement_geo;revenu_median;Numerique;Revenu median des menages en USD (B19013_001E);Integer;7;0 - 250000 (-666666666 = non disponible);non;oui
+enrichissement_geo;age_median;Numerique;Age median de la population (B01002_001E);Float;4;0 - 100;non;oui
+enrichissement_geo;densite_population;Numerique;Densite de population (habitants / km2);Float;8;0 et plus;non;oui
