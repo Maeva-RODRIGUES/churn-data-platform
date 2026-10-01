@@ -14,3 +14,6 @@ data/processed/*
 # To conserve the structure of the folders, we add .gitkeep files
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# Secrets (API keys) — never commit, see .env.example
+.env
