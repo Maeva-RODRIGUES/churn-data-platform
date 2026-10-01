@@ -1,0 +1,24 @@
+# Base PostgreSQL de développement — le DDL de sql/ddl est appliqué au premier démarrage.
+# Démarrage : docker compose up -d   (variables lues dans .env, voir .env.example)
+# Réinitialisation complète : docker compose down -v
+services:
+  postgres:
+    image: postgres:16
+    container_name: churn-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-churn}
+      POSTGRES_USER: ${POSTGRES_USER:-churn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD doit être défini dans .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/ddl:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
