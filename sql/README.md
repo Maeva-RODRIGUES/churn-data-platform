@@ -14,28 +14,28 @@ Les schémas `staging` et `mart` sont alimentés par dbt (P4 / P5).
 
 ```mermaid
 erDiagram
-    enrichissement_geo ||--o{ client : "zipcode"
-    client ||--|| contrat : "customer_id"
-    client ||--|| services : "customer_id"
-    client ||--|| satisfaction : "customer_id"
-    client ||--o| feedback : "customer_id"
+    geo_enrichment ||--o{ customers : "zipcode"
+    customers ||--|| contracts : "customer_id"
+    customers ||--|| services : "customer_id"
+    customers ||--|| satisfaction : "customer_id"
+    customers ||--o| feedback : "customer_id"
 ```
 
 | Table | Clé primaire | Source RAW | Contrat |
 |---|---|---|---|
-| `core.enrichissement_geo` | `zipcode` | `raw.census_zcta` | enrichissement_geo (TBD v0.2) |
-| `core.client` | `customer_id` | `raw.telco` | client v0.1.0 |
-| `core.contrat` | `customer_id` | `raw.telco` | contrat v0.2.0 |
+| `core.geo_enrichment` | `zipcode` | `raw.census_zcta` | enrichissement_geo (TBD v0.2) |
+| `core.customers` | `customer_id` | `raw.telco` | client v0.1.0 |
+| `core.contracts` | `customer_id` | `raw.telco` | contrat v0.2.0 |
 | `core.services` | `customer_id` | `raw.telco` | services |
 | `core.satisfaction` | `customer_id` | `raw.telco_satisfaction` | satisfaction |
 | `core.feedback` | `customer_id` | `raw.telco_noisy_feedback` | feedback v0.2.0 |
 
 **Choix de modélisation**
-- Colonnes en `snake_case` (`customerID` → `customer_id`).
+- Tables et colonnes nommées en anglais, alignées sur le MCD / MLD ; `snake_case` (`customerID` → `customer_id`, `nb_appels_support` → `support_calls_count`). Les tables `raw.*` gardent les noms des fichiers sources.
 - Champs `Yes/No` et `0/1` typés `BOOLEAN`.
 - Contraintes nommées `ck_<table>_<règle>` / `fk_<table>_<cible>` : chaque rejet est rattaché à une règle du contrat.
 - Deux règles marquées « proposition v0.3 » dans `03_core.sql`, à valider dans les contrats :
-  - domaine de `motif_contact_principal` complété (8 valeurs observées, 5 déclarées en v0.2) ;
+  - domaine de `main_contact_reason` (`motif_contact_principal`) complété (8 valeurs observées, 5 déclarées en v0.2) ;
   - `feedback_length` et `sentiment` à `NULL` lorsque `has_feedback = false`.
 
 ## Lancer la base et contrôler les données
@@ -55,9 +55,9 @@ Prérequis : `data/raw/` extrait de `data-enrichi.zip` et `data/processed/census
 
 | Table CORE | Lignes | Rejets (RAW tel quel) | Rejets (règles STAGING) |
 |---|---|---|---|
-| `enrichissement_geo` | 15 | 0 | 0 |
-| `client` | 7 043 | 0 | 0 |
-| `contrat` | 7 043 | 11 · `total_charges` vide (tenure = 0) | 0 |
+| `geo_enrichment` | 15 | 0 | 0 |
+| `customers` | 7 043 | 0 | 0 |
+| `contracts` | 7 043 | 11 · `total_charges` vide (tenure = 0) | 0 |
 | `services` | 7 043 | 0 | 0 |
 | `satisfaction` | 7 043 | 0 | 0 |
 | `feedback` | 7 032 | 7 032 · `customer_id` en minuscules, puis 5 274 · score sans verbatim | 0 |
