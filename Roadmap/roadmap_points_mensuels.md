@@ -19,7 +19,7 @@
 | **P4** | **jeu. 26 nov. 2026** | Ingestion & Pipeline ETL/ELT | Pipeline fonctionnel Bronze→Silver | BC02 · 4.3 |
 | **P5** | **jeu. 17 déc. 2026** ⚠️ | Couche Gold & Machine Learning | Modèle + MLflow + drift + SHAP | BC03 · 5.2 |
 | **P6** | **jeu. 28 janv. 2027** | Dataviz & API | Dashboard + API sécurisée | BC02/BC03 · 5.1, 6.1 |
-| **P7** | **jeu. 25 fév. 2027** | Conteneurisation & CI/CD | Podman/compose + pipeline CI | BC03 · 6.2, 7.1, 8.3 |
+| **P7** | **jeu. 25 fév. 2027** | Conteneurisation & CI/CD | Docker/compose + pipeline CI | BC03 · 6.2, 7.1, 8.3 |
 | **P8** | **jeu. 25 mars 2027** | Déploiement & Monitoring | Infra + Prometheus/Grafana + alertes | BC03/BC04 · 7.2 |
 | **P9** | **jeu. 29 avr. 2027** | Pilotage & Dossier final | Dossier complet + prépa soutenance | BC04 · 8.1-8.2, 9.0-11.0 |
 | 🎓 | *2ème année (date programme)* | **Soutenance** | Démo appli en prod + vulgarisation | tous |
@@ -62,7 +62,7 @@
 **À valider :**
 - [ ] **Pipeline fonctionnel** : ingestion Kaggle + **scraping Trustpilot** + génération **SDV** → couche **Bronze**
 - [ ] Nettoyage / normalisation → **Silver** (TotalCharges vides, doublons `customerID`, casse)
-- [ ] Transformation versionnée avec **dbt** ; orchestration **Prefect**
+- [ ] Transformation versionnée avec **dbt** ; orchestration **Apache Airflow**
 - [ ] Bases **relationnelle (Postgres)** + **NoSQL (Mongo)** reliées (4.3)
 **À faire avant P5 :** construire la couche Gold + features + premier modèle.
 
@@ -86,7 +86,7 @@
 ### 🟦 P7 — jeu. 25 février 2027 · Conteneurisation & CI/CD
 > _Fin étape 6 / début étape 7 de Vincent._
 **À valider :**
-- [ ] **Conteneurisation dès le départ** : Podman/Docker + **docker-compose** (micro-services) (6.2)
+- [ ] **Conteneurisation dès le départ** : **Docker** + **docker-compose** (micro-services) (6.2)
 - [ ] **Pipeline CI** (CD en bonus) — GitHub Actions (7.1)
 - [ ] **Stratégie de tests & maintenance** (8.3)
 **À faire avant P8 :** déployer + monitorer.
