@@ -4,37 +4,39 @@
 -- =============================================================================
 -- Traduction physique des data contracts v0.2 (domaines, bornes, nullabilité,
 -- clés). Choix de modélisation :
---   - colonnes en snake_case (le nom du champ du contrat figure en commentaire
---     lorsqu'il n'est pas déductible) ;
+--   - tables et colonnes nommées en anglais, alignées sur le MCD / MLD
+--     (le nom du champ du contrat figure en commentaire lorsqu'il diffère) ;
+--   - colonnes en snake_case ;
 --   - champs Yes/No et 0/1 typés BOOLEAN ;
 --   - contraintes nommées ck_<table>_<règle> pour tracer chaque rejet.
 -- Les règles marquées « proposition v0.3 » ne figurent pas encore dans les
 -- contrats v0.2 et restent à valider.
--- Ordre de création : enrichissement_geo est référencé par client.
+-- Ordre de création : geo_enrichment est référencé par customers.
 
 -- -----------------------------------------------------------------------------
--- enrichissement_geo — contrat enrichissement_geo (TBD en v0.2)
+-- geo_enrichment — contrat enrichissement_geo (TBD en v0.2)
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS core.enrichissement_geo (
+CREATE TABLE IF NOT EXISTS core.geo_enrichment (
     zipcode            CHAR(5)       NOT NULL,
-    revenu_median      INTEGER,
-    age_median         NUMERIC(4, 1),
-    densite_population NUMERIC(10, 1),
-    CONSTRAINT pk_enrichissement_geo PRIMARY KEY (zipcode),
-    CONSTRAINT ck_geo_zipcode_format CHECK (zipcode ~ '^[0-9]{5}$'),
-    CONSTRAINT ck_geo_revenu_median_range CHECK (revenu_median BETWEEN 0 AND 250000),
-    CONSTRAINT ck_geo_age_median_range CHECK (age_median BETWEEN 0 AND 100),
-    CONSTRAINT ck_geo_densite_population_positive CHECK (densite_population >= 0)
+    median_income      INTEGER,
+    median_age         NUMERIC(4, 1),
+    population_density NUMERIC(10, 1),
+    CONSTRAINT pk_geo_enrichment PRIMARY KEY (zipcode),
+    CONSTRAINT ck_geo_enrichment_zipcode_format CHECK (zipcode ~ '^[0-9]{5}$'),
+    CONSTRAINT ck_geo_enrichment_median_income_range CHECK (median_income BETWEEN 0 AND 250000),
+    CONSTRAINT ck_geo_enrichment_median_age_range CHECK (median_age BETWEEN 0 AND 100),
+    CONSTRAINT ck_geo_enrichment_population_density_positive CHECK (population_density >= 0)
 );
 
-COMMENT ON TABLE core.enrichissement_geo IS 'Contrat enrichissement_geo — US Census ACS 5-Year 2022 + TIGER/Web, une ligne par ZCTA';
-COMMENT ON COLUMN core.enrichissement_geo.revenu_median IS 'B19013_001E — NULL si non publié par le Census (sentinelle -666666666)';
-COMMENT ON COLUMN core.enrichissement_geo.densite_population IS 'Habitants/km² — NULL si le ZCTA n''a pas d''habitants';
+COMMENT ON TABLE core.geo_enrichment IS 'Contrat enrichissement_geo — US Census ACS 5-Year 2022 + TIGER/Web, une ligne par ZCTA';
+COMMENT ON COLUMN core.geo_enrichment.median_income IS 'revenu_median (B19013_001E) — NULL si non publié par le Census (sentinelle -666666666)';
+COMMENT ON COLUMN core.geo_enrichment.median_age IS 'age_median (B01002_001E)';
+COMMENT ON COLUMN core.geo_enrichment.population_density IS 'densite_population — habitants/km², NULL si le ZCTA n''a pas d''habitants';
 
 -- -----------------------------------------------------------------------------
--- client — contrat client v0.1.0
+-- customers — contrat client v0.1.0
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS core.client (
+CREATE TABLE IF NOT EXISTS core.customers (
     customer_id    VARCHAR(10) NOT NULL,
     gender         VARCHAR(6)  NOT NULL,
     senior_citizen BOOLEAN     NOT NULL,
@@ -42,21 +44,21 @@ CREATE TABLE IF NOT EXISTS core.client (
     dependents     BOOLEAN     NOT NULL,
     zipcode        CHAR(5)     NOT NULL,
     churn          BOOLEAN     NOT NULL,
-    CONSTRAINT pk_client PRIMARY KEY (customer_id),
-    CONSTRAINT fk_client_zipcode FOREIGN KEY (zipcode) REFERENCES core.enrichissement_geo (zipcode),
-    CONSTRAINT ck_client_customer_id_format CHECK (customer_id ~ '^[0-9]{4}-[A-Z]{5}$'),
-    CONSTRAINT ck_client_gender CHECK (gender IN ('Female', 'Male')),
-    CONSTRAINT ck_client_zipcode_format CHECK (zipcode ~ '^[0-9]{5}$')
+    CONSTRAINT pk_customers PRIMARY KEY (customer_id),
+    CONSTRAINT fk_customers_geo_enrichment FOREIGN KEY (zipcode) REFERENCES core.geo_enrichment (zipcode),
+    CONSTRAINT ck_customers_customer_id_format CHECK (customer_id ~ '^[0-9]{4}-[A-Z]{5}$'),
+    CONSTRAINT ck_customers_gender CHECK (gender IN ('Female', 'Male')),
+    CONSTRAINT ck_customers_zipcode_format CHECK (zipcode ~ '^[0-9]{5}$')
 );
 
-COMMENT ON TABLE core.client IS 'Contrat client v0.1.0 — source telco.csv';
-COMMENT ON COLUMN core.client.senior_citizen IS 'SeniorCitizen (0/1) — client de 65 ans et plus';
-COMMENT ON COLUMN core.client.churn IS 'Churn (Yes/No) — VARIABLE CIBLE';
+COMMENT ON TABLE core.customers IS 'Contrat client v0.1.0 — source telco.csv';
+COMMENT ON COLUMN core.customers.senior_citizen IS 'SeniorCitizen (0/1) — client de 65 ans et plus';
+COMMENT ON COLUMN core.customers.churn IS 'Churn (Yes/No) — VARIABLE CIBLE';
 
 -- -----------------------------------------------------------------------------
--- contrat — contrat contrat v0.2.0
+-- contracts — contrat contrat v0.2.0
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS core.contrat (
+CREATE TABLE IF NOT EXISTS core.contracts (
     customer_id       VARCHAR(10)   NOT NULL,
     tenure            SMALLINT      NOT NULL,
     contract          VARCHAR(14)   NOT NULL,
@@ -64,21 +66,21 @@ CREATE TABLE IF NOT EXISTS core.contrat (
     payment_method    VARCHAR(25)   NOT NULL,
     monthly_charges   NUMERIC(6, 2) NOT NULL,
     total_charges     NUMERIC(8, 2) NOT NULL,
-    CONSTRAINT pk_contrat PRIMARY KEY (customer_id),
-    CONSTRAINT fk_contrat_client FOREIGN KEY (customer_id) REFERENCES core.client (customer_id),
-    CONSTRAINT ck_contrat_tenure_range CHECK (tenure BETWEEN 0 AND 72),
-    CONSTRAINT ck_contrat_contract CHECK (contract IN ('Month-to-month', 'One year', 'Two year')),
-    CONSTRAINT ck_contrat_payment_method CHECK (
+    CONSTRAINT pk_contracts PRIMARY KEY (customer_id),
+    CONSTRAINT fk_contracts_customers FOREIGN KEY (customer_id) REFERENCES core.customers (customer_id),
+    CONSTRAINT ck_contracts_tenure_range CHECK (tenure BETWEEN 0 AND 72),
+    CONSTRAINT ck_contracts_contract CHECK (contract IN ('Month-to-month', 'One year', 'Two year')),
+    CONSTRAINT ck_contracts_payment_method CHECK (
         payment_method IN ('Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)')
     ),
-    CONSTRAINT ck_contrat_monthly_charges_range CHECK (monthly_charges BETWEEN 18.25 AND 118.75),
-    CONSTRAINT ck_contrat_total_charges_range CHECK (total_charges BETWEEN 0 AND 8684.80),
+    CONSTRAINT ck_contracts_monthly_charges_range CHECK (monthly_charges BETWEEN 18.25 AND 118.75),
+    CONSTRAINT ck_contracts_total_charges_range CHECK (total_charges BETWEEN 0 AND 8684.80),
     -- Règle v0.2 : 0.0 uniquement (et obligatoirement) lorsque tenure = 0
-    CONSTRAINT ck_contrat_total_charges_tenure_zero CHECK ((tenure = 0) = (total_charges = 0))
+    CONSTRAINT ck_contracts_total_charges_tenure_zero CHECK ((tenure = 0) = (total_charges = 0))
 );
 
-COMMENT ON TABLE core.contrat IS 'Contrat contrat v0.2.0 — source telco.csv';
-COMMENT ON COLUMN core.contrat.total_charges IS 'TotalCharges — 0.0 lorsque tenure = 0 (vide dans la source, conservé en RAW)';
+COMMENT ON TABLE core.contracts IS 'Contrat contrat v0.2.0 — source telco.csv';
+COMMENT ON COLUMN core.contracts.total_charges IS 'TotalCharges — 0.0 lorsque tenure = 0 (vide dans la source, conservé en RAW)';
 
 -- -----------------------------------------------------------------------------
 -- services — contrat services
@@ -95,7 +97,7 @@ CREATE TABLE IF NOT EXISTS core.services (
     streaming_tv      VARCHAR(19) NOT NULL,
     streaming_movies  VARCHAR(19) NOT NULL,
     CONSTRAINT pk_services PRIMARY KEY (customer_id),
-    CONSTRAINT fk_services_client FOREIGN KEY (customer_id) REFERENCES core.client (customer_id),
+    CONSTRAINT fk_services_customers FOREIGN KEY (customer_id) REFERENCES core.customers (customer_id),
     CONSTRAINT ck_services_multiple_lines CHECK (multiple_lines IN ('Yes', 'No', 'No phone service')),
     CONSTRAINT ck_services_internet_service CHECK (internet_service IN ('DSL', 'Fiber optic', 'No')),
     CONSTRAINT ck_services_internet_options CHECK (
@@ -114,36 +116,41 @@ COMMENT ON TABLE core.services IS 'Contrat services — source telco.csv';
 -- satisfaction — contrat satisfaction
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.satisfaction (
-    customer_id                VARCHAR(10)   NOT NULL,
-    nb_appels_support          SMALLINT      NOT NULL,
-    duree_moy_appel_min        SMALLINT      NOT NULL,
-    score_satisfaction         NUMERIC(2, 1) NOT NULL,
-    nps_score                  SMALLINT      NOT NULL,
-    motif_contact_principal    VARCHAR(30)   NOT NULL,
-    derniere_interaction_jours SMALLINT      NOT NULL,
-    incident_facturation       BOOLEAN       NOT NULL,
+    customer_id                 VARCHAR(10)   NOT NULL,
+    support_calls_count         SMALLINT      NOT NULL,
+    avg_call_duration_min       SMALLINT      NOT NULL,
+    satisfaction_score          NUMERIC(2, 1) NOT NULL,
+    nps_score                   SMALLINT      NOT NULL,
+    main_contact_reason         VARCHAR(30)   NOT NULL,
+    days_since_last_interaction SMALLINT      NOT NULL,
+    billing_incident            BOOLEAN       NOT NULL,
     CONSTRAINT pk_satisfaction PRIMARY KEY (customer_id),
-    CONSTRAINT fk_satisfaction_client FOREIGN KEY (customer_id) REFERENCES core.client (customer_id),
-    CONSTRAINT ck_satisfaction_nb_appels_support_range CHECK (nb_appels_support BETWEEN 0 AND 50),
-    CONSTRAINT ck_satisfaction_duree_moy_appel_range CHECK (duree_moy_appel_min BETWEEN 0 AND 60),
-    CONSTRAINT ck_satisfaction_score_range CHECK (score_satisfaction BETWEEN 1.0 AND 5.0),
+    CONSTRAINT fk_satisfaction_customers FOREIGN KEY (customer_id) REFERENCES core.customers (customer_id),
+    CONSTRAINT ck_satisfaction_support_calls_count_range CHECK (support_calls_count BETWEEN 0 AND 50),
+    CONSTRAINT ck_satisfaction_avg_call_duration_range CHECK (avg_call_duration_min BETWEEN 0 AND 60),
+    CONSTRAINT ck_satisfaction_score_range CHECK (satisfaction_score BETWEEN 1.0 AND 5.0),
     CONSTRAINT ck_satisfaction_nps_range CHECK (nps_score BETWEEN -100 AND 100),
     -- Proposition v0.3 : domaine complété avec les 3 valeurs observées absentes du contrat v0.2
-    -- (Panne réseau, Aucun contact, Qualité service)
-    CONSTRAINT ck_satisfaction_motif_contact CHECK (
-        motif_contact_principal IN (
+    -- (Panne réseau, Aucun contact, Qualité service). Les valeurs restent celles de la source.
+    CONSTRAINT ck_satisfaction_main_contact_reason CHECK (
+        main_contact_reason IN (
             'Assistance technique', 'Changement forfait', 'Facturation', 'Résiliation', 'Autre',
             'Panne réseau', 'Aucun contact', 'Qualité service'
         )
     ),
-    CONSTRAINT ck_satisfaction_derniere_interaction_range CHECK (derniere_interaction_jours BETWEEN 0 AND 365)
+    CONSTRAINT ck_satisfaction_days_since_last_interaction_range CHECK (days_since_last_interaction BETWEEN 0 AND 365)
 );
 
 COMMENT ON TABLE core.satisfaction IS 'Contrat satisfaction — source telco_satisfaction.csv (données synthétiques, fuite de cible : voir notebook 3.0)';
-COMMENT ON COLUMN core.satisfaction.incident_facturation IS 'incident_facturation (0/1)';
+COMMENT ON COLUMN core.satisfaction.support_calls_count IS 'nb_appels_support';
+COMMENT ON COLUMN core.satisfaction.avg_call_duration_min IS 'duree_moy_appel_min';
+COMMENT ON COLUMN core.satisfaction.satisfaction_score IS 'score_satisfaction';
+COMMENT ON COLUMN core.satisfaction.main_contact_reason IS 'motif_contact_principal';
+COMMENT ON COLUMN core.satisfaction.days_since_last_interaction IS 'derniere_interaction_jours';
+COMMENT ON COLUMN core.satisfaction.billing_incident IS 'incident_facturation (0/1)';
 
 -- -----------------------------------------------------------------------------
--- feedback — contrat feedback v0.2.0 (cardinalité 0:1 avec client)
+-- feedback — contrat feedback v0.2.0 (cardinalité 0:1 avec customers)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.feedback (
     customer_id       VARCHAR(10)   NOT NULL,
@@ -152,7 +159,7 @@ CREATE TABLE IF NOT EXISTS core.feedback (
     sentiment         DOUBLE PRECISION,
     has_feedback      BOOLEAN       NOT NULL,
     CONSTRAINT pk_feedback PRIMARY KEY (customer_id),
-    CONSTRAINT fk_feedback_client FOREIGN KEY (customer_id) REFERENCES core.client (customer_id),
+    CONSTRAINT fk_feedback_customers FOREIGN KEY (customer_id) REFERENCES core.customers (customer_id),
     CONSTRAINT ck_feedback_customer_id_format CHECK (customer_id ~ '^[0-9]{4}-[A-Z]{5}$'),
     CONSTRAINT ck_feedback_length_range CHECK (feedback_length BETWEEN 0 AND 2000),
     CONSTRAINT ck_feedback_sentiment_range CHECK (sentiment BETWEEN -1.0 AND 1.0),
