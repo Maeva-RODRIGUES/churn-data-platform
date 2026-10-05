@@ -44,7 +44,13 @@ docker compose up -d              # PostgreSQL 16, DDL appliqué au premier dém
 ### Données
 
 Les jeux de données ne sont pas versionnés. Source principale :
-[Telco Customer Churn (Kaggle)](https://www.kaggle.com/datasets/blastchar/telco-customer-churn).
+[Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn),
+jeu d'exemple IBM (IBM Sample Data Sets) republié sur Kaggle par BlastChar. Licence Kaggle :
+« Data files © Original Authors », sans licence ouverte : les droits restent à leurs auteurs.
+Le jeu est utilisé ici dans un cadre pédagogique, avec citation de la source, et n'est pas redistribué.
+
+Les fichiers enrichis par IA générative (satisfaction, verbatims) sont des dérivés de ce jeu :
+ils ne sont pas versionnés non plus.
 
 - `data/raw/` : fichiers extraits de `data-enrichi.zip`
 - `data/processed/census_zcta_2022.csv` : produit par le notebook 3.0 (clé API Census requise)
@@ -87,4 +93,4 @@ Sans les vraies données, le contrôle de conformité peut tourner sur le jeu sy
 
 ## Licence
 
-Code sous licence [MIT](LICENSE). Les jeux de données sources restent soumis à leurs propres licences.
+Code sous licence [MIT](LICENSE). La licence MIT ne couvre pas les données : le jeu Telco Customer Churn (IBM, via Kaggle) et ses dérivés restent soumis aux droits de leurs auteurs (voir [Données](#données)).
