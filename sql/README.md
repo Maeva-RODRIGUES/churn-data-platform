@@ -37,6 +37,7 @@ erDiagram
 - Deux règles marquées « proposition v0.3 » dans `03_core.sql`, à valider dans les contrats :
   - domaine de `main_contact_reason` (`motif_contact_principal`) complété (8 valeurs observées, 5 déclarées en v0.2) ;
   - `feedback_length` et `sentiment` à `NULL` lorsque `has_feedback = false`.
+- Règles inter-champs du contrat services (`ck_services_phone_consistency`, `ck_services_internet_consistency`) : « No phone service » si et seulement si `phone_service` est faux, « No internet service » sur les six options si et seulement si `internet_service = 'No'`.
 
 ## Lancer la base et contrôler les données
 
