@@ -1,5 +1,5 @@
 # CI — runs on every PR targeting develop/main and on pushes to those branches.
-# Job names (lint, notebooks, dependencies, ddl) are the status checks required
+# Job names (lint, notebooks, dependencies, ddl, tests) are the status checks required
 # by the branch protection rules: renaming a job means updating the rules.
 name: CI
 
@@ -71,6 +71,59 @@ jobs:
           poetry install --no-root --no-interaction
       - name: Scripts compile
         run: poetry run python -m compileall -q scripts
+      - name: No known vulnerabilities
+        run: poetry run pip-audit --progress-spinner off
+
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: churn
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d churn"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: churn
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+      - name: Install all dependencies
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --no-root --no-interaction
+      - name: Unit tests
+        run: poetry run pytest
+      # The fixture holds one row per STAGING rule: raw data must be rejected,
+      # otherwise the dataset no longer exercises the rules it is meant to test.
+      - name: Conformance fails without STAGING rules
+        run: |
+          if poetry run python scripts/check_mpd_conformance.py --data-dir tests/fixtures/data; then
+            echo "::error::Fixture accepted without STAGING rules"
+            exit 1
+          fi
+      - name: Conformance passes with STAGING rules
+        run: poetry run python scripts/check_mpd_conformance.py --data-dir tests/fixtures/data --staging-rules
 
   ddl:
     name: ddl
