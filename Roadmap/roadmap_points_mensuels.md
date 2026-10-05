@@ -43,7 +43,7 @@
 > _Couvre les étapes 2 & 3 de Vincent (« Deadline Sprint 7 » et « Sprint 9 »)._
 **À valider :**
 - [ ] **Cahier des charges** rédigé (attendus du projet)
-- [ ] **Veille techno & réglementaire** : ≥ 3 solutions comparées → dont **stack open-source vs Dataiku** et **PostgreSQL vs MongoDB** (justifier « pourquoi Mongo alors que la search existe »)
+- [ ] **Veille techno & réglementaire** : ≥ 3 solutions comparées → dont **stack open-source vs Dataiku** et **PostgreSQL vs MongoDB** (justifier le choix de PostgreSQL et du JSONB plutôt qu'une base documentaire dédiée)
 - [ ] **SWOT & PESTEL** finalisés + volet **RSE & accessibilité** (section 2.5)
 - [ ] **KPIs** en 3 familles : business / ML / technique, chacun argumenté (2.3)
 - [ ] **Roadmap de dev** validée (celle-ci) + indicateurs de suivi
@@ -52,7 +52,7 @@
 ### 🟦 P3 — jeu. 29 octobre 2026 · Conception & Architecture des données
 **À valider :**
 - [ ] **Architecture cible** : schéma global (sources → Bronze/Silver/Gold → ML → API → front) + flux + **justification de CHAQUE techno** (3.2)
-- [ ] **MPD PostgreSQL** en couches **Bronze / Silver / Gold** + rôle de **MongoDB** (enrichissement non structuré)
+- [ ] **MPD PostgreSQL** en couches **Bronze / Silver / Gold** + stockage des données semi-structurées (avis Trustpilot) en **JSONB**
 - [ ] **Définition du MVP** (3.1) + **challenge du MVP** : risques, budget (3.4)
 - [ ] Contraintes transverses : RGPD, éthique, biais, sobriété (3.3)
 **À faire avant P4 :** coder l'ingestion Bronze→Silver.
@@ -63,7 +63,7 @@
 - [ ] **Pipeline fonctionnel** : ingestion Kaggle + **scraping Trustpilot** + génération **SDV** → couche **Bronze**
 - [ ] Nettoyage / normalisation → **Silver** (TotalCharges vides, doublons `customerID`, casse)
 - [ ] Transformation versionnée avec **dbt** ; orchestration **Apache Airflow**
-- [ ] Bases **relationnelle (Postgres)** + **NoSQL (Mongo)** reliées (4.3)
+- [ ] Avis Trustpilot et données SDV chargés dans **PostgreSQL** (Bronze, JSONB pour le semi-structuré) (4.3)
 **À faire avant P5 :** construire la couche Gold + features + premier modèle.
 
 ### 🟦 P5 — jeu. 17 décembre 2026 · Couche Gold & Machine Learning
@@ -111,6 +111,6 @@
 
 ## Format de réunion suggéré (30-45 min)
 1. **Revue du livrable** du mois (10 min) — est-ce validé ?
-2. **Points bloquants / décisions** (10 min) — ex. Mongo vs Postgres, découpage tables, date P5.
+2. **Points bloquants / décisions** (10 min) — ex. découpage tables, date P5.
 3. **Lancement du lot suivant** (10 min) — qui fait quoi (Alexandre / Maëva).
 4. **Mise à jour de la roadmap** (5 min) — cocher, réajuster les dates si dérive.
