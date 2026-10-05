@@ -37,5 +37,21 @@ dev = [
     "seaborn (>=0.13.2,<0.14.0)",
     "scipy (>=1.18.1,<2.0.0)",
     "jupyter (>=1.1.1,<2.0.0)",
-    "ruff (>=0.16.9,<0.17.0)"
+    "ruff (>=0.16.9,<0.17.0)",
+    "nbstripout (>=0.9.1,<0.10.0)"
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "BLE", "UP"]
+# Line length is enforced by `ruff format`; long string literals are left alone.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# In notebooks a bare last-line expression is how a cell displays a value, and
+# exploratory cells may catch broadly to keep the notebook running.
+"*.ipynb" = ["B018", "BLE001"]

@@ -148,7 +148,9 @@ def as_integer(value: str | None) -> int | None:
     if value is None:
         return None
     try:
-        number = Decimal(value)  # accepte "106509.0" (export pandas d'une colonne avec NaN)
+        number = Decimal(
+            value
+        )  # accepte "106509.0" (export pandas d'une colonne avec NaN)
     except InvalidOperation as exc:
         raise TypingError(value) from exc
     if number != number.to_integral_value():
@@ -282,7 +284,10 @@ def rule_no_score_without_feedback(row: dict) -> dict:
 
 def rule_census_sentinel_to_null(row: dict) -> dict:
     # Règle 5 : sentinelle Census -> NULL
-    return {key: (None if value in (CENSUS_MISSING, CENSUS_MISSING + ".0") else value) for key, value in row.items()}
+    return {
+        key: (None if value in (CENSUS_MISSING, CENSUS_MISSING + ".0") else value)
+        for key, value in row.items()
+    }
 
 
 STAGING_RULES = {
@@ -327,7 +332,9 @@ def load_raw(cur) -> None:
                 sys.exit(f"{path.name} : colonnes inattendues {unknown}")
             f.seek(0)
             target = ", ".join(columns[name] for name in header)
-            cur.copy_expert(f"COPY {table} ({target}) FROM STDIN WITH (FORMAT csv, HEADER true)", f)
+            cur.copy_expert(
+                f"COPY {table} ({target}) FROM STDIN WITH (FORMAT csv, HEADER true)", f
+            )
 
 
 def violation_label(exc: psycopg2.Error) -> str:
@@ -375,11 +382,17 @@ def load_core(cur, core_table: str, with_staging_rules: bool) -> tuple[int, Coun
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
-        "--staging-rules", action="store_true", help="appliquer les règles STAGING proposées avant le chargement"
+        "--staging-rules",
+        action="store_true",
+        help="appliquer les règles STAGING proposées avant le chargement",
     )
     args = parser.parse_args()
 
-    mode = "avec règles STAGING proposées" if args.staging_rules else "données RAW telles quelles"
+    mode = (
+        "avec règles STAGING proposées"
+        if args.staging_rules
+        else "données RAW telles quelles"
+    )
     print(f"Contrôle de conformité au MPD — {mode}\n")
 
     with connect() as conn, conn.cursor() as cur:
@@ -388,16 +401,27 @@ def main() -> int:
         load_raw(cur)
 
         total_rejects = 0
-        print(f"{'Table CORE':<24} {'source':>7} {'acceptées':>10} {'rejetées':>9}  Motif de rejet")
+        print(
+            f"{'Table CORE':<24} {'source':>7} {'acceptées':>10} {'rejetées':>9}  Motif de rejet"
+        )
         print("-" * 100)
         for core_table in CORE_MAPPINGS:
             n_rows, rejects = load_core(cur, core_table, args.staging_rules)
             n_rejected = sum(rejects.values())
             total_rejects += n_rejected
-            reasons = " · ".join(f"{label} ({count})" for label, count in rejects.most_common()) or "—"
-            print(f"{core_table:<24} {n_rows:>7} {n_rows - n_rejected:>10} {n_rejected:>9}  {reasons}")
+            reasons = (
+                " · ".join(
+                    f"{label} ({count})" for label, count in rejects.most_common()
+                )
+                or "—"
+            )
+            print(
+                f"{core_table:<24} {n_rows:>7} {n_rows - n_rejected:>10} {n_rejected:>9}  {reasons}"
+            )
 
-    print(f"\n{'Aucun rejet.' if total_rejects == 0 else f'{total_rejects} lignes rejetées.'}")
+    print(
+        f"\n{'Aucun rejet.' if total_rejects == 0 else f'{total_rejects} lignes rejetées.'}"
+    )
     return 0 if total_rejects == 0 else 1
 
 
