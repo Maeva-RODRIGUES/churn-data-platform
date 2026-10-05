@@ -20,6 +20,7 @@ POSTGRES_USER, POSTGRES_PASSWORD (fichier .env, voir .env.example).
 Usage :
     poetry run python scripts/check_mpd_conformance.py
     poetry run python scripts/check_mpd_conformance.py --staging-rules
+    poetry run python scripts/check_mpd_conformance.py --data-dir tests/fixtures/data
 
 Code de sortie : 0 si toutes les lignes sont acceptées, 1 sinon.
 """
@@ -39,14 +40,14 @@ from psycopg2 import errors
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DDL_DIR = PROJECT_ROOT / "sql" / "ddl"
-DATA_RAW = PROJECT_ROOT / "data" / "raw"
-DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
+DATA_DIR = PROJECT_ROOT / "data"
 
 CENSUS_MISSING = "-666666666"
 
-# Fichier source -> (table RAW, correspondance colonne source -> colonne RAW)
+# Fichier source (relatif au dossier de données) -> (table RAW, correspondance
+# colonne source -> colonne RAW)
 RAW_SOURCES = {
-    DATA_RAW / "telco.csv": (
+    "raw/telco.csv": (
         "raw.telco",
         {
             "customerID": "customer_id",
@@ -73,7 +74,7 @@ RAW_SOURCES = {
             "zipcode": "zipcode",
         },
     ),
-    DATA_RAW / "telco_satisfaction.csv": (
+    "raw/telco_satisfaction.csv": (
         "raw.telco_satisfaction",
         {
             "customerID": "customer_id",
@@ -86,7 +87,7 @@ RAW_SOURCES = {
             "incident_facturation": "incident_facturation",
         },
     ),
-    DATA_RAW / "telco_noisy_feedback_prep.csv": (
+    "raw/telco_noisy_feedback_prep.csv": (
         "raw.telco_noisy_feedback",
         {
             "": "source_index",
@@ -119,7 +120,7 @@ RAW_SOURCES = {
         },
     ),
     # Cache produit par le notebook 3.0 en attendant le script d'ingestion Census (P4)
-    DATA_PROCESSED / "census_zcta_2022.csv": (
+    "processed/census_zcta_2022.csv": (
         "raw.census_zcta",
         {
             "zipcode": "zipcode",
@@ -321,10 +322,11 @@ def reset_tables(cur) -> None:
     cur.execute(f"TRUNCATE {', '.join(tables)}")
 
 
-def load_raw(cur) -> None:
-    for path, (table, columns) in RAW_SOURCES.items():
+def load_raw(cur, data_dir: Path) -> None:
+    for relative_path, (table, columns) in RAW_SOURCES.items():
+        path = data_dir / relative_path
         if not path.exists():
-            sys.exit(f"Fichier source introuvable : {path.relative_to(PROJECT_ROOT)}")
+            sys.exit(f"Fichier source introuvable : {path}")
         with path.open(encoding="utf-8", newline="") as f:
             header = next(csv.reader(f))
             unknown = [name for name in header if name not in columns]
@@ -386,6 +388,12 @@ def main() -> int:
         action="store_true",
         help="appliquer les règles STAGING proposées avant le chargement",
     )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=DATA_DIR,
+        help="dossier contenant raw/ et processed/ (défaut : data/)",
+    )
     args = parser.parse_args()
 
     mode = (
@@ -398,7 +406,7 @@ def main() -> int:
     with connect() as conn, conn.cursor() as cur:
         apply_ddl(cur)
         reset_tables(cur)
-        load_raw(cur)
+        load_raw(cur, args.data_dir)
 
         total_rejects = 0
         print(
