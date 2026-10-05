@@ -1,0 +1,5 @@
+customerID,nb_appels_support,duree_moy_appel_min,score_satisfaction,nps_score,motif_contact_principal,derniere_interaction_jours,incident_facturation
+0001-AAAAA,2,12,3.5,20,Facturation,30,0
+0002-BBBBB,0,0,4.5,60,Aucun contact,200,0
+0003-CCCCC,7,25,1.5,-80,Résiliation,3,1
+0004-DDDDD,1,8,4.0,40,Assistance technique,90,0
