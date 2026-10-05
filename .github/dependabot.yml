@@ -1,0 +1,19 @@
+# PR de mise à jour hebdomadaires, ouvertes vers develop comme toute autre PR.
+version: 2
+updates:
+  - package-ecosystem: pip  # couvre pyproject.toml + poetry.lock
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      # Une seule PR pour les mises à jour mineures et correctives.
+      minor-and-patch:
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
