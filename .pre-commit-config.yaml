@@ -1,0 +1,22 @@
+# Mêmes contrôles que la CI, lancés avant chaque commit.
+# Installation : poetry run pre-commit install
+# Les hooks passent par `poetry run` pour utiliser les versions de poetry.lock,
+# comme la CI : aucune version d'outil à maintenir ici.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: poetry run ruff check --fix
+        language: system
+        types_or: [python, jupyter]
+      - id: ruff-format
+        name: ruff format
+        entry: poetry run ruff format
+        language: system
+        types_or: [python, jupyter]
+      - id: nbstripout
+        name: nbstripout
+        entry: poetry run nbstripout
+        language: system
+        types: [jupyter]
