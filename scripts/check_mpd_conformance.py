@@ -183,16 +183,16 @@ as_true_false = boolean_from({"True": True, "False": False})
 
 # Table CORE -> (table RAW, [(colonne CORE, colonne RAW, typage)]) — dans l'ordre des clés étrangères
 CORE_MAPPINGS = {
-    "core.enrichissement_geo": (
+    "core.geo_enrichment": (
         "raw.census_zcta",
         [
             ("zipcode", "zipcode", as_text),
-            ("revenu_median", "revenu_median", as_integer),
-            ("age_median", "age_median", as_decimal),
-            ("densite_population", "densite_population", as_decimal),
+            ("median_income", "revenu_median", as_integer),
+            ("median_age", "age_median", as_decimal),
+            ("population_density", "densite_population", as_decimal),
         ],
     ),
-    "core.client": (
+    "core.customers": (
         "raw.telco",
         [
             ("customer_id", "customer_id", as_text),
@@ -204,7 +204,7 @@ CORE_MAPPINGS = {
             ("churn", "churn", as_yes_no),
         ],
     ),
-    "core.contrat": (
+    "core.contracts": (
         "raw.telco",
         [
             ("customer_id", "customer_id", as_text),
@@ -235,13 +235,13 @@ CORE_MAPPINGS = {
         "raw.telco_satisfaction",
         [
             ("customer_id", "customer_id", as_text),
-            ("nb_appels_support", "nb_appels_support", as_integer),
-            ("duree_moy_appel_min", "duree_moy_appel_min", as_integer),
-            ("score_satisfaction", "score_satisfaction", as_decimal),
+            ("support_calls_count", "nb_appels_support", as_integer),
+            ("avg_call_duration_min", "duree_moy_appel_min", as_integer),
+            ("satisfaction_score", "score_satisfaction", as_decimal),
             ("nps_score", "nps_score", as_integer),
-            ("motif_contact_principal", "motif_contact_principal", as_text),
-            ("derniere_interaction_jours", "derniere_interaction_jours", as_integer),
-            ("incident_facturation", "incident_facturation", as_zero_one),
+            ("main_contact_reason", "motif_contact_principal", as_text),
+            ("days_since_last_interaction", "derniere_interaction_jours", as_integer),
+            ("billing_incident", "incident_facturation", as_zero_one),
         ],
     ),
     "core.feedback": (
@@ -286,8 +286,8 @@ def rule_census_sentinel_to_null(row: dict) -> dict:
 
 
 STAGING_RULES = {
-    "core.enrichissement_geo": [rule_census_sentinel_to_null],
-    "core.contrat": [rule_total_charges_zero_when_no_tenure],
+    "core.geo_enrichment": [rule_census_sentinel_to_null],
+    "core.contracts": [rule_total_charges_zero_when_no_tenure],
     "core.feedback": [rule_uppercase_customer_id, rule_no_score_without_feedback],
 }
 
