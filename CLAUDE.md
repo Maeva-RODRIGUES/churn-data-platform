@@ -46,7 +46,7 @@ Projet fil rouge RNCP38919 (Data Engineer, niveau 7), mené en binôme par Maëv
 
 fil-rouge-rncp38919.html est une application autonome (artefact Claude, HTML/CSS/JS pur, sans dépendance externe fonctionnelle) qui sert d'espace de rédaction pour le dossier fil rouge RNCP38919 du projet **Churn Data Platform**. Elle est partagée entre Maëva et Alexandre.
 
-Ce fichier est situé dans claude/fil-rouge-rncp38919.html sur la branche feature/artefact (branche isolée du reste du code, volontairement sans lien d'historique avec develop).
+Ce fichier est situé dans claude/artefact/fil-rouge-rncp38919.html sur la branche feature/artefact (branche isolée du reste du code, volontairement sans lien d'historique avec develop).
 
 ## Comment l'ouvrir
 
