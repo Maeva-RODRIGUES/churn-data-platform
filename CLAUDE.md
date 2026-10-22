@@ -7,7 +7,7 @@ Projet fil rouge RNCP38919 (Data Engineer, niveau 7), mené en binôme par Maëv
 **Stack technique retenue :**
 
 - Langage : Python (Poetry pour la gestion des dépendances, environnement WSL Ubuntu-24.04)
-- Stockage : PostgreSQL (architecture en couches Bronze / Silver / Gold), y compris les avis Trustpilot (scraping BeautifulSoup) et les données synthétiques SDV, la partie semi-structurée en JSONB. Pas de base NoSQL dédiée : MongoDB a été écarté
+- Stockage : PostgreSQL, organisé en quatre couches RAW / STAGING / CORE / MART (voir conventions). JSONB pour la partie semi-structurée (réponse brute de l'API Census). Pas de base NoSQL dédiée : MongoDB a été écarté
 - Transformation : dbt
 - Orchestration : Apache Airflow (conteneurisé via Docker, pas installé dans le venv Python)
 - Machine learning : Scikit-learn / XGBoost, suivi via MLflow
@@ -15,6 +15,16 @@ Projet fil rouge RNCP38919 (Data Engineer, niveau 7), mené en binôme par Maëv
 - Conteneurisation : Docker (pas Podman)
 - CI/CD : GitHub Actions
 - Structure de projet : Cookiecutter Data Science v2
+
+**Décisions de référence (elles priment sur tout autre document) :**
+- **Seule source du modèle :** telco.csv (Kaggle, 7 043 clients, 26,5 % de churn). Baseline : régression logistique, ROC-AUC 0,845 en validation croisée stratifiée à 5 plis. Aucune section ne doit affirmer que les enrichissements améliorent le modèle.
+- **Fuite de cible :** les données de satisfaction et les verbatims ont été générés par IA en connaissant le churn (NPS ≤ 0 prédit le churn à 99,4 %, les prompts LLM contenaient la cible). Ils sont ingérés pour la BI et une démo NLP, mais interdits comme variables du modèle.
+- **Snapshot sans horodatage :** aucune affirmation temporelle (« X précède Y de N semaines ») n'est démontrable. Le découpage train/test est aléatoire et stratifié sur le churn.
+- **Trustpilot : hors MVP** (validé avec le chef de projet), cité uniquement en perspective.
+- **SDV :** génération de lots de nouveaux clients pour la démo de scoring (entraîné sur Telco sans la colonne churn). Satisfaction et feedback ne sont pas régénérés en v1.
+- **API Census :** ingestion en v1 proposée, en attente de validation ; jointure et usage dans le modèle en v1.1.
+- **Architecture validée :** scoring batch. Le modèle écrit ses scores dans la couche MART, l'API FastAPI les lit, Streamlit consomme l'API. Deux DAG : churn_scoring et churn_training.
+- En cas de contradiction entre documents, **le registre des décisions du projet fait foi.**
 
 **Plan officiel du dossier** (24 sections, réparties en 6 étapes techniques + intro/roadmap/conclusion) :
 
@@ -38,7 +48,7 @@ Projet fil rouge RNCP38919 (Data Engineer, niveau 7), mené en binôme par Maëv
 - Diagrammes en SVG ou Mermaid pour les schémas d'architecture.
 - Code (Python, SQL, YAML) commenté, prêt à intégrer au dépôt.
 - **Messages de commit Git en anglais** (le reste (documentation, échanges) reste en français).
-- Architecture inspirée du pattern **Medallion** (Bronze/Silver/Gold) : formulation à utiliser telle quelle pour rester rigoureux techniquement.
+- Couches de données : **RAW / STAGING / CORE / MART**, à utiliser telles quelles (ce sont les noms des schémas PostgreSQL, du code et des contrats de données). Le rattachement au pattern **Medallion** se fait une seule fois, par correspondance : RAW = Bronze, STAGING et CORE = Silver, MART = Gold. Ne jamais présenter Bronze / Silver / Gold comme les noms des couches du projet.
 - Le mapping aux blocs RNCP (BC01-BC04) est porté par la structure et les annotations du dossier, jamais mentionné explicitement dans le corps du texte des sections.
 - Pas de tirets cadratins (—) dans la rédaction : virgules, points, parenthèses à la place.
 
