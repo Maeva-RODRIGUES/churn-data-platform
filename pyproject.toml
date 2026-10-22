@@ -14,7 +14,6 @@ package-mode = false
 pandas = "^2.2"
 sqlalchemy = "^2.0.51"
 psycopg2-binary = "^2.9.12"
-pymongo = "^4.17.0"
 beautifulsoup4 = "^4.15.0"
 requests = "^2.34.2"
 sdv = "^1.37.3"
