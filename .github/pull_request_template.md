@@ -8,6 +8,6 @@
 
 ## Vérification
 
-- [ ] CI verte (lint, notebooks, dependencies, ddl)
-- [ ] Notebooks nettoyés (`poetry run nbstripout notebooks/*.ipynb`)
+- [ ] CI verte (lint, notebooks, dependencies, ddl, tests)
+- [ ] Hooks pre-commit installés (`poetry run pre-commit install`)
 - [ ] Testé localement si le DDL ou les scripts changent (`docker compose up -d`)
