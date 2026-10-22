@@ -107,6 +107,19 @@ CREATE TABLE IF NOT EXISTS core.services (
         AND tech_support IN ('Yes', 'No', 'No internet service')
         AND streaming_tv IN ('Yes', 'No', 'No internet service')
         AND streaming_movies IN ('Yes', 'No', 'No internet service')
+    ),
+    -- Règles inter-champs du contrat services : la modalité « No … service » des
+    -- options est réservée, et obligatoire, aux clients sans le service de base
+    CONSTRAINT ck_services_phone_consistency CHECK (
+        (NOT phone_service) = (multiple_lines = 'No phone service')
+    ),
+    CONSTRAINT ck_services_internet_consistency CHECK (
+        (internet_service = 'No') = (online_security = 'No internet service')
+        AND (internet_service = 'No') = (online_backup = 'No internet service')
+        AND (internet_service = 'No') = (device_protection = 'No internet service')
+        AND (internet_service = 'No') = (tech_support = 'No internet service')
+        AND (internet_service = 'No') = (streaming_tv = 'No internet service')
+        AND (internet_service = 'No') = (streaming_movies = 'No internet service')
     )
 );
 
