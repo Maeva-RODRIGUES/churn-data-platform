@@ -12,3 +12,6 @@ datascientest/
 
 # Data is not versioned in git (use external storage instead)
 data-enrichi.zip
+
+# Secrets (API keys): never commit
+.env
