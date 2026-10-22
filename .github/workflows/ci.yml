@@ -1,0 +1,111 @@
+# CI — runs on every PR targeting develop/main and on pushes to those branches.
+# Job names (lint, notebooks, dependencies, ddl) are the status checks required
+# by the branch protection rules: renaming a job means updating the rules.
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+  POETRY_VERSION: "2.3.2"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - run: poetry install --only dev --no-root --no-interaction
+      - name: ruff check
+        run: poetry run ruff check . --output-format github
+      - name: ruff format
+        run: poetry run ruff format --check .
+
+  notebooks:
+    name: notebooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - run: poetry install --only dev --no-root --no-interaction
+      - name: Outputs stripped
+        run: poetry run nbstripout --verify notebooks/*.ipynb
+
+  dependencies:
+    name: dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pipx install poetry==${{ env.POETRY_VERSION }}
+      - name: pyproject and lock are consistent
+        run: poetry check --lock
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+      - name: Install all dependencies
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --no-root --no-interaction
+      - name: Scripts compile
+        run: poetry run python -m compileall -q scripts
+
+  ddl:
+    name: ddl
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: churn
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d churn"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: ci
+      PGPASSWORD: ci
+      PGDATABASE: churn
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply sql/ddl in order
+        run: |
+          for f in sql/ddl/*.sql; do
+            echo "::group::$f"
+            psql -v ON_ERROR_STOP=1 -q -f "$f"
+            echo "::endgroup::"
+          done
+      - name: Schemas exist
+        run: |
+          psql -tAc "select table_schema || '.' || table_name
+                     from information_schema.tables
+                     where table_schema in ('raw', 'staging', 'core', 'mart')
+                     order by 1"
