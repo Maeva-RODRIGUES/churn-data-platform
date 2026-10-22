@@ -1,0 +1,23 @@
+name: release
+
+# Publishes a GitHub release when a version tag (vMAJOR.MINOR.PATCH) is pushed
+# to the repository, e.g. an annotated tag v0.1.0 created on main.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Notes are generated from the pull requests merged since the previous
+        # tag, grouped by the categories in .github/release.yml.
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
