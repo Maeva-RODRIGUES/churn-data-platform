@@ -20,6 +20,7 @@ POSTGRES_USER, POSTGRES_PASSWORD (fichier .env, voir .env.example).
 Usage :
     poetry run python scripts/check_mpd_conformance.py
     poetry run python scripts/check_mpd_conformance.py --staging-rules
+    poetry run python scripts/check_mpd_conformance.py --data-dir tests/fixtures/data
 
 Code de sortie : 0 si toutes les lignes sont acceptées, 1 sinon.
 """
@@ -39,14 +40,14 @@ from psycopg2 import errors
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DDL_DIR = PROJECT_ROOT / "sql" / "ddl"
-DATA_RAW = PROJECT_ROOT / "data" / "raw"
-DATA_PROCESSED = PROJECT_ROOT / "data" / "processed"
+DATA_DIR = PROJECT_ROOT / "data"
 
 CENSUS_MISSING = "-666666666"
 
-# Fichier source -> (table RAW, correspondance colonne source -> colonne RAW)
+# Fichier source (relatif au dossier de données) -> (table RAW, correspondance
+# colonne source -> colonne RAW)
 RAW_SOURCES = {
-    DATA_RAW / "telco.csv": (
+    "raw/telco.csv": (
         "raw.telco",
         {
             "customerID": "customer_id",
@@ -73,7 +74,7 @@ RAW_SOURCES = {
             "zipcode": "zipcode",
         },
     ),
-    DATA_RAW / "telco_satisfaction.csv": (
+    "raw/telco_satisfaction.csv": (
         "raw.telco_satisfaction",
         {
             "customerID": "customer_id",
@@ -86,7 +87,7 @@ RAW_SOURCES = {
             "incident_facturation": "incident_facturation",
         },
     ),
-    DATA_RAW / "telco_noisy_feedback_prep.csv": (
+    "raw/telco_noisy_feedback_prep.csv": (
         "raw.telco_noisy_feedback",
         {
             "": "source_index",
@@ -119,7 +120,7 @@ RAW_SOURCES = {
         },
     ),
     # Cache produit par le notebook 3.0 en attendant le script d'ingestion Census (P4)
-    DATA_PROCESSED / "census_zcta_2022.csv": (
+    "processed/census_zcta_2022.csv": (
         "raw.census_zcta",
         {
             "zipcode": "zipcode",
@@ -148,7 +149,9 @@ def as_integer(value: str | None) -> int | None:
     if value is None:
         return None
     try:
-        number = Decimal(value)  # accepte "106509.0" (export pandas d'une colonne avec NaN)
+        number = Decimal(
+            value
+        )  # accepte "106509.0" (export pandas d'une colonne avec NaN)
     except InvalidOperation as exc:
         raise TypingError(value) from exc
     if number != number.to_integral_value():
@@ -183,16 +186,16 @@ as_true_false = boolean_from({"True": True, "False": False})
 
 # Table CORE -> (table RAW, [(colonne CORE, colonne RAW, typage)]) — dans l'ordre des clés étrangères
 CORE_MAPPINGS = {
-    "core.enrichissement_geo": (
+    "core.geo_enrichment": (
         "raw.census_zcta",
         [
             ("zipcode", "zipcode", as_text),
-            ("revenu_median", "revenu_median", as_integer),
-            ("age_median", "age_median", as_decimal),
-            ("densite_population", "densite_population", as_decimal),
+            ("median_income", "revenu_median", as_integer),
+            ("median_age", "age_median", as_decimal),
+            ("population_density", "densite_population", as_decimal),
         ],
     ),
-    "core.client": (
+    "core.customers": (
         "raw.telco",
         [
             ("customer_id", "customer_id", as_text),
@@ -204,7 +207,7 @@ CORE_MAPPINGS = {
             ("churn", "churn", as_yes_no),
         ],
     ),
-    "core.contrat": (
+    "core.contracts": (
         "raw.telco",
         [
             ("customer_id", "customer_id", as_text),
@@ -235,13 +238,13 @@ CORE_MAPPINGS = {
         "raw.telco_satisfaction",
         [
             ("customer_id", "customer_id", as_text),
-            ("nb_appels_support", "nb_appels_support", as_integer),
-            ("duree_moy_appel_min", "duree_moy_appel_min", as_integer),
-            ("score_satisfaction", "score_satisfaction", as_decimal),
+            ("support_calls_count", "nb_appels_support", as_integer),
+            ("avg_call_duration_min", "duree_moy_appel_min", as_integer),
+            ("satisfaction_score", "score_satisfaction", as_decimal),
             ("nps_score", "nps_score", as_integer),
-            ("motif_contact_principal", "motif_contact_principal", as_text),
-            ("derniere_interaction_jours", "derniere_interaction_jours", as_integer),
-            ("incident_facturation", "incident_facturation", as_zero_one),
+            ("main_contact_reason", "motif_contact_principal", as_text),
+            ("days_since_last_interaction", "derniere_interaction_jours", as_integer),
+            ("billing_incident", "incident_facturation", as_zero_one),
         ],
     ),
     "core.feedback": (
@@ -282,12 +285,15 @@ def rule_no_score_without_feedback(row: dict) -> dict:
 
 def rule_census_sentinel_to_null(row: dict) -> dict:
     # Règle 5 : sentinelle Census -> NULL
-    return {key: (None if value in (CENSUS_MISSING, CENSUS_MISSING + ".0") else value) for key, value in row.items()}
+    return {
+        key: (None if value in (CENSUS_MISSING, CENSUS_MISSING + ".0") else value)
+        for key, value in row.items()
+    }
 
 
 STAGING_RULES = {
-    "core.enrichissement_geo": [rule_census_sentinel_to_null],
-    "core.contrat": [rule_total_charges_zero_when_no_tenure],
+    "core.geo_enrichment": [rule_census_sentinel_to_null],
+    "core.contracts": [rule_total_charges_zero_when_no_tenure],
     "core.feedback": [rule_uppercase_customer_id, rule_no_score_without_feedback],
 }
 
@@ -316,10 +322,11 @@ def reset_tables(cur) -> None:
     cur.execute(f"TRUNCATE {', '.join(tables)}")
 
 
-def load_raw(cur) -> None:
-    for path, (table, columns) in RAW_SOURCES.items():
+def load_raw(cur, data_dir: Path) -> None:
+    for relative_path, (table, columns) in RAW_SOURCES.items():
+        path = data_dir / relative_path
         if not path.exists():
-            sys.exit(f"Fichier source introuvable : {path.relative_to(PROJECT_ROOT)}")
+            sys.exit(f"Fichier source introuvable : {path}")
         with path.open(encoding="utf-8", newline="") as f:
             header = next(csv.reader(f))
             unknown = [name for name in header if name not in columns]
@@ -327,7 +334,9 @@ def load_raw(cur) -> None:
                 sys.exit(f"{path.name} : colonnes inattendues {unknown}")
             f.seek(0)
             target = ", ".join(columns[name] for name in header)
-            cur.copy_expert(f"COPY {table} ({target}) FROM STDIN WITH (FORMAT csv, HEADER true)", f)
+            cur.copy_expert(
+                f"COPY {table} ({target}) FROM STDIN WITH (FORMAT csv, HEADER true)", f
+            )
 
 
 def violation_label(exc: psycopg2.Error) -> str:
@@ -375,29 +384,52 @@ def load_core(cur, core_table: str, with_staging_rules: bool) -> tuple[int, Coun
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
-        "--staging-rules", action="store_true", help="appliquer les règles STAGING proposées avant le chargement"
+        "--staging-rules",
+        action="store_true",
+        help="appliquer les règles STAGING proposées avant le chargement",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=DATA_DIR,
+        help="dossier contenant raw/ et processed/ (défaut : data/)",
     )
     args = parser.parse_args()
 
-    mode = "avec règles STAGING proposées" if args.staging_rules else "données RAW telles quelles"
+    mode = (
+        "avec règles STAGING proposées"
+        if args.staging_rules
+        else "données RAW telles quelles"
+    )
     print(f"Contrôle de conformité au MPD — {mode}\n")
 
     with connect() as conn, conn.cursor() as cur:
         apply_ddl(cur)
         reset_tables(cur)
-        load_raw(cur)
+        load_raw(cur, args.data_dir)
 
         total_rejects = 0
-        print(f"{'Table CORE':<24} {'source':>7} {'acceptées':>10} {'rejetées':>9}  Motif de rejet")
+        print(
+            f"{'Table CORE':<24} {'source':>7} {'acceptées':>10} {'rejetées':>9}  Motif de rejet"
+        )
         print("-" * 100)
         for core_table in CORE_MAPPINGS:
             n_rows, rejects = load_core(cur, core_table, args.staging_rules)
             n_rejected = sum(rejects.values())
             total_rejects += n_rejected
-            reasons = " · ".join(f"{label} ({count})" for label, count in rejects.most_common()) or "—"
-            print(f"{core_table:<24} {n_rows:>7} {n_rows - n_rejected:>10} {n_rejected:>9}  {reasons}")
+            reasons = (
+                " · ".join(
+                    f"{label} ({count})" for label, count in rejects.most_common()
+                )
+                or "—"
+            )
+            print(
+                f"{core_table:<24} {n_rows:>7} {n_rows - n_rejected:>10} {n_rejected:>9}  {reasons}"
+            )
 
-    print(f"\n{'Aucun rejet.' if total_rejects == 0 else f'{total_rejects} lignes rejetées.'}")
+    print(
+        f"\n{'Aucun rejet.' if total_rejects == 0 else f'{total_rejects} lignes rejetées.'}"
+    )
     return 0 if total_rejects == 0 else 1
 
 
