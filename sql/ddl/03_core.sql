@@ -2,19 +2,19 @@
 -- Churn Data Platform — Modèle physique (MPD) PostgreSQL
 -- 03 · Couche CORE
 -- =============================================================================
--- Traduction physique des data contracts v0.2 (domaines, bornes, nullabilité,
+-- Traduction physique des data contracts v0.4 (domaines, bornes, nullabilité,
 -- clés). Choix de modélisation :
 --   - tables et colonnes nommées en anglais, alignées sur le MCD / MLD
 --     (le nom du champ du contrat figure en commentaire lorsqu'il diffère) ;
 --   - colonnes en snake_case ;
 --   - champs Yes/No et 0/1 typés BOOLEAN ;
---   - contraintes nommées ck_<table>_<règle> pour tracer chaque rejet.
--- Les règles marquées « proposition v0.3 » ne figurent pas encore dans les
--- contrats v0.2 et restent à valider.
+--   - contraintes nommées ck_<table>_<règle> pour tracer chaque rejet ;
+--   - les CHECK portent uniquement des règles métier : les bornes observées
+--     dans le snapshot (min / max) sont des tests dbt de sévérité warn.
 -- Ordre de création : geo_enrichment est référencé par customers.
 
 -- -----------------------------------------------------------------------------
--- geo_enrichment — contrat enrichissement_geo (TBD en v0.2)
+-- geo_enrichment — contrat enrichissement_geo v0.1.0 (hors MVP v1, reporté en v1.1)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.geo_enrichment (
     zipcode            CHAR(5)       NOT NULL,
@@ -34,7 +34,7 @@ COMMENT ON COLUMN core.geo_enrichment.median_age IS 'age_median (B01002_001E)';
 COMMENT ON COLUMN core.geo_enrichment.population_density IS 'densite_population — habitants/km², NULL si le ZCTA n''a pas d''habitants';
 
 -- -----------------------------------------------------------------------------
--- customers — contrat client v0.1.0
+-- customers — contrat client v0.2.0
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.customers (
     customer_id    VARCHAR(10) NOT NULL,
@@ -51,12 +51,12 @@ CREATE TABLE IF NOT EXISTS core.customers (
     CONSTRAINT ck_customers_zipcode_format CHECK (zipcode ~ '^[0-9]{5}$')
 );
 
-COMMENT ON TABLE core.customers IS 'Contrat client v0.1.0 — source telco.csv';
+COMMENT ON TABLE core.customers IS 'Contrat client v0.2.0 — source telco.csv';
 COMMENT ON COLUMN core.customers.senior_citizen IS 'SeniorCitizen (0/1) — client de 65 ans et plus';
 COMMENT ON COLUMN core.customers.churn IS 'Churn (Yes/No) — VARIABLE CIBLE';
 
 -- -----------------------------------------------------------------------------
--- contracts — contrat contrat v0.2.0
+-- contracts — contrat contrat v0.4.0
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.contracts (
     customer_id       VARCHAR(10)   NOT NULL,
@@ -68,22 +68,23 @@ CREATE TABLE IF NOT EXISTS core.contracts (
     total_charges     NUMERIC(8, 2) NOT NULL,
     CONSTRAINT pk_contracts PRIMARY KEY (customer_id),
     CONSTRAINT fk_contracts_customers FOREIGN KEY (customer_id) REFERENCES core.customers (customer_id),
-    CONSTRAINT ck_contracts_tenure_range CHECK (tenure BETWEEN 0 AND 72),
+    CONSTRAINT ck_contracts_tenure_positive CHECK (tenure >= 0),
     CONSTRAINT ck_contracts_contract CHECK (contract IN ('Month-to-month', 'One year', 'Two year')),
     CONSTRAINT ck_contracts_payment_method CHECK (
         payment_method IN ('Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)')
     ),
-    CONSTRAINT ck_contracts_monthly_charges_range CHECK (monthly_charges BETWEEN 18.25 AND 118.75),
-    CONSTRAINT ck_contracts_total_charges_range CHECK (total_charges BETWEEN 0 AND 8684.80),
-    -- Règle v0.2 : 0.0 uniquement (et obligatoirement) lorsque tenure = 0
-    CONSTRAINT ck_contracts_total_charges_tenure_zero CHECK ((tenure = 0) = (total_charges = 0))
+    CONSTRAINT ck_contracts_monthly_charges_positive CHECK (monthly_charges >= 0),
+    CONSTRAINT ck_contracts_total_charges_positive CHECK (total_charges >= 0),
+    -- Règle métier : sans ancienneté, rien n'a encore été facturé. La réciproque
+    -- (total à 0 ⇒ tenure = 0) n'est vraie que sur le snapshot : test dbt warn.
+    CONSTRAINT ck_contracts_total_charges_tenure_zero CHECK (tenure <> 0 OR total_charges = 0)
 );
 
-COMMENT ON TABLE core.contracts IS 'Contrat contrat v0.2.0 — source telco.csv';
+COMMENT ON TABLE core.contracts IS 'Contrat contrat v0.4.0 — source telco.csv';
 COMMENT ON COLUMN core.contracts.total_charges IS 'TotalCharges — 0.0 lorsque tenure = 0 (vide dans la source, conservé en RAW)';
 
 -- -----------------------------------------------------------------------------
--- services — contrat services
+-- services — contrat services v0.2.0
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.services (
     customer_id       VARCHAR(10) NOT NULL,
@@ -123,10 +124,10 @@ CREATE TABLE IF NOT EXISTS core.services (
     )
 );
 
-COMMENT ON TABLE core.services IS 'Contrat services — source telco.csv';
+COMMENT ON TABLE core.services IS 'Contrat services v0.2.0 — source telco.csv';
 
 -- -----------------------------------------------------------------------------
--- satisfaction — contrat satisfaction
+-- satisfaction — contrat satisfaction v0.3.0
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS core.satisfaction (
     customer_id                 VARCHAR(10)   NOT NULL,
@@ -143,8 +144,8 @@ CREATE TABLE IF NOT EXISTS core.satisfaction (
     CONSTRAINT ck_satisfaction_avg_call_duration_range CHECK (avg_call_duration_min BETWEEN 0 AND 60),
     CONSTRAINT ck_satisfaction_score_range CHECK (satisfaction_score BETWEEN 1.0 AND 5.0),
     CONSTRAINT ck_satisfaction_nps_range CHECK (nps_score BETWEEN -100 AND 100),
-    -- Proposition v0.3 : domaine complété avec les 3 valeurs observées absentes du contrat v0.2
-    -- (Panne réseau, Aucun contact, Qualité service). Les valeurs restent celles de la source.
+    -- Domaine v0.3 : les 8 valeurs observées (la v0.2 en déclarait 5).
+    -- Les valeurs restent celles de la source.
     CONSTRAINT ck_satisfaction_main_contact_reason CHECK (
         main_contact_reason IN (
             'Assistance technique', 'Changement forfait', 'Facturation', 'Résiliation', 'Autre',
@@ -154,7 +155,7 @@ CREATE TABLE IF NOT EXISTS core.satisfaction (
     CONSTRAINT ck_satisfaction_days_since_last_interaction_range CHECK (days_since_last_interaction BETWEEN 0 AND 365)
 );
 
-COMMENT ON TABLE core.satisfaction IS 'Contrat satisfaction — source telco_satisfaction.csv (données synthétiques, fuite de cible : voir notebook 3.0)';
+COMMENT ON TABLE core.satisfaction IS 'Contrat satisfaction v0.3.0 — source telco_satisfaction.csv (données synthétiques, fuite de cible : voir notebook 3.0)';
 COMMENT ON COLUMN core.satisfaction.support_calls_count IS 'nb_appels_support';
 COMMENT ON COLUMN core.satisfaction.avg_call_duration_min IS 'duree_moy_appel_min';
 COMMENT ON COLUMN core.satisfaction.satisfaction_score IS 'score_satisfaction';
@@ -163,28 +164,24 @@ COMMENT ON COLUMN core.satisfaction.days_since_last_interaction IS 'derniere_int
 COMMENT ON COLUMN core.satisfaction.billing_incident IS 'incident_facturation (0/1)';
 
 -- -----------------------------------------------------------------------------
--- feedback — contrat feedback v0.2.0 (cardinalité 0:1 avec customers)
+-- feedback — contrat feedback v0.4.0 (cardinalité 0:1 avec customers)
 -- -----------------------------------------------------------------------------
+-- Une ligne uniquement lorsqu'il y a un avis : un client sans verbatim n'a pas de
+-- ligne (filtrage en STAGING). has_feedback n'est pas stocké, il se déduit en
+-- MART par jointure externe.
 CREATE TABLE IF NOT EXISTS core.feedback (
-    customer_id       VARCHAR(10)   NOT NULL,
-    customer_feedback VARCHAR(1000),
-    feedback_length   SMALLINT,
-    sentiment         DOUBLE PRECISION,
-    has_feedback      BOOLEAN       NOT NULL,
+    customer_id       VARCHAR(10)      NOT NULL,
+    customer_feedback VARCHAR(1000)    NOT NULL,
+    feedback_length   SMALLINT         NOT NULL,
+    sentiment         DOUBLE PRECISION NOT NULL,
     CONSTRAINT pk_feedback PRIMARY KEY (customer_id),
     CONSTRAINT fk_feedback_customers FOREIGN KEY (customer_id) REFERENCES core.customers (customer_id),
     CONSTRAINT ck_feedback_customer_id_format CHECK (customer_id ~ '^[0-9]{4}-[A-Z]{5}$'),
-    CONSTRAINT ck_feedback_length_range CHECK (feedback_length BETWEEN 0 AND 2000),
-    CONSTRAINT ck_feedback_sentiment_range CHECK (sentiment BETWEEN -1.0 AND 1.0),
-    CONSTRAINT ck_feedback_has_feedback_text CHECK (has_feedback = (customer_feedback IS NOT NULL)),
-    CONSTRAINT ck_feedback_length_consistent CHECK (
-        customer_feedback IS NULL OR feedback_length = char_length(customer_feedback)
-    ),
-    -- Proposition v0.3 : sans verbatim, longueur et sentiment sont absents (NULL), pas nuls (0)
-    CONSTRAINT ck_feedback_no_score_without_text CHECK (
-        has_feedback OR (feedback_length IS NULL AND sentiment IS NULL)
-    )
+    CONSTRAINT ck_feedback_text_not_blank CHECK (btrim(customer_feedback) <> ''),
+    CONSTRAINT ck_feedback_length_range CHECK (feedback_length BETWEEN 0 AND 1000),
+    CONSTRAINT ck_feedback_length_consistent CHECK (feedback_length = char_length(customer_feedback)),
+    CONSTRAINT ck_feedback_sentiment_range CHECK (sentiment BETWEEN -1.0 AND 1.0)
 );
 
-COMMENT ON TABLE core.feedback IS 'Contrat feedback v0.2.0 — source telco_noisy_feedback_prep.csv (verbatims LLM, fuite de cible : voir notebook 3.0)';
-COMMENT ON COLUMN core.feedback.sentiment IS 'Score de sentiment hérité de la source, méthode non documentée (sentiment_legacy)';
+COMMENT ON TABLE core.feedback IS 'Contrat feedback v0.4.0 — source telco_noisy_feedback_prep.csv, une ligne par avis (verbatims LLM, fuite de cible : voir notebook 3.0)';
+COMMENT ON COLUMN core.feedback.sentiment IS 'Polarité TextBlob 0.20.1 du verbatim (reproduit le score de la source sur les 1 758 avis)';
