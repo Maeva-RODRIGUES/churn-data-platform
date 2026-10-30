@@ -76,16 +76,15 @@ def test_uppercase_customer_id():
     assert conformance.rule_uppercase_customer_id(row)["customer_id"] == "0002-BBBBB"
 
 
-def test_no_score_without_feedback():
-    row = {"has_feedback": "False", "feedback_length": "0", "sentiment": "0.0"}
-    result = conformance.rule_no_score_without_feedback(row)
-    assert result["feedback_length"] is None
-    assert result["sentiment"] is None
+@pytest.mark.parametrize("blank", [None, "", "   "])
+def test_feedback_without_text_is_dropped(blank):
+    row = {"customer_feedback": blank, "feedback_length": "0", "sentiment": "0.0"}
+    assert conformance.rule_keep_only_feedback_with_text(row) is None
 
 
-def test_scores_kept_with_feedback():
-    row = {"has_feedback": "True", "feedback_length": "15", "sentiment": "0.4"}
-    assert conformance.rule_no_score_without_feedback(row) == row
+def test_feedback_with_text_is_kept():
+    row = {"customer_feedback": "Service correct", "feedback_length": "15"}
+    assert conformance.rule_keep_only_feedback_with_text(row) == row
 
 
 @pytest.mark.parametrize("sentinel", ["-666666666", "-666666666.0"])
