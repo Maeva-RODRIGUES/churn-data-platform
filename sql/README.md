@@ -5,7 +5,7 @@ Traduction physique des data contracts v0.2, organisée selon les couches du HLD
 | Fichier | Contenu |
 |---|---|
 | `ddl/01_schemas.sql` | Schémas `raw`, `staging`, `core`, `mart` |
-| `ddl/02_raw.sql` | Une table par fichier source, colonnes `TEXT`, valeurs conservées telles quelles |
+| `ddl/02_raw.sql` | Une table par fichier source, colonnes `TEXT`, valeurs conservées telles quelles ; réponses de l'API Census en `JSONB` (`raw.census_api_responses`) |
 | `ddl/03_core.sql` | Modèle de référence typé : clés, domaines, bornes et règles de cohérence des contrats |
 
 Les schémas `staging` et `mart` sont alimentés par dbt (P4 / P5).
