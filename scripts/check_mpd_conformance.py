@@ -10,6 +10,8 @@ Deux modes :
   le rapport liste ce que la couche STAGING devra traiter ;
 - ``--staging-rules`` applique d'abord les règles STAGING proposées
   (notebook 3.0, section 8) : le rapport vérifie qu'elles suffisent.
+  Une règle peut écarter une ligne (ex. un avis sans verbatim) : elle est
+  comptée à part et ne constitue pas un rejet.
 
 Attention : les tables raw.* et core.* de la base ciblée sont vidées.
 À lancer uniquement sur une base de développement.
@@ -254,14 +256,14 @@ CORE_MAPPINGS = {
             ("customer_feedback", "customer_feedback", as_text),
             ("feedback_length", "feedback_length", as_integer),
             ("sentiment", "sentiment", as_decimal),
-            ("has_feedback", "has_feedback", as_true_false),
         ],
     ),
 }
 
 
 # --- Règles STAGING proposées (numérotation : notebook 3.0, section 8) ---
-# Chaque règle reçoit une ligne RAW (dict) et renvoie la ligne corrigée.
+# Chaque règle reçoit une ligne RAW (dict) et renvoie la ligne corrigée,
+# ou None pour l'écarter.
 
 
 def rule_total_charges_zero_when_no_tenure(row: dict) -> dict:
@@ -276,10 +278,10 @@ def rule_uppercase_customer_id(row: dict) -> dict:
     return {**row, "customer_id": row["customer_id"].upper()}
 
 
-def rule_no_score_without_feedback(row: dict) -> dict:
-    # Règle 4 : sans verbatim, longueur et sentiment sont absents
-    if row["has_feedback"] == "False":
-        return {**row, "feedback_length": None, "sentiment": None}
+def rule_keep_only_feedback_with_text(row: dict) -> dict | None:
+    # Règle 4 : une ligne d'avis n'existe que s'il y a un verbatim
+    if (row["customer_feedback"] or "").strip() == "":
+        return None
     return row
 
 
@@ -294,7 +296,7 @@ def rule_census_sentinel_to_null(row: dict) -> dict:
 STAGING_RULES = {
     "core.geo_enrichment": [rule_census_sentinel_to_null],
     "core.contracts": [rule_total_charges_zero_when_no_tenure],
-    "core.feedback": [rule_uppercase_customer_id, rule_no_score_without_feedback],
+    "core.feedback": [rule_keep_only_feedback_with_text, rule_uppercase_customer_id],
 }
 
 
@@ -345,7 +347,9 @@ def violation_label(exc: psycopg2.Error) -> str:
     return exc.diag.constraint_name or type(exc).__name__
 
 
-def load_core(cur, core_table: str, with_staging_rules: bool) -> tuple[int, Counter]:
+def load_core(
+    cur, core_table: str, with_staging_rules: bool
+) -> tuple[int, int, Counter]:
     raw_table, mapping = CORE_MAPPINGS[core_table]
     raw_columns = sorted({raw_col for _, raw_col, _ in mapping})
     cur.execute(f"SELECT {', '.join(raw_columns)} FROM {raw_table} ORDER BY ctid")
@@ -356,10 +360,16 @@ def load_core(cur, core_table: str, with_staging_rules: bool) -> tuple[int, Coun
     insert_sql = f"INSERT INTO {core_table} ({core_columns}) VALUES ({placeholders})"
 
     rejects: Counter = Counter()
+    n_dropped = 0
     for row in rows:
         if with_staging_rules:
             for rule in STAGING_RULES.get(core_table, []):
                 row = rule(row)
+                if row is None:
+                    break
+            if row is None:
+                n_dropped += 1
+                continue
         try:
             values = []
             for core_col, raw_col, cast in mapping:
@@ -378,7 +388,7 @@ def load_core(cur, core_table: str, with_staging_rules: bool) -> tuple[int, Coun
         except (errors.IntegrityError, errors.DataError) as exc:
             cur.execute("ROLLBACK TO SAVEPOINT row_insert")
             rejects[violation_label(exc)] += 1
-    return len(rows), rejects
+    return len(rows), n_dropped, rejects
 
 
 def main() -> int:
@@ -410,11 +420,11 @@ def main() -> int:
 
         total_rejects = 0
         print(
-            f"{'Table CORE':<24} {'source':>7} {'acceptées':>10} {'rejetées':>9}  Motif de rejet"
+            f"{'Table CORE':<24} {'source':>7} {'écartées':>9} {'acceptées':>10} {'rejetées':>9}  Motif de rejet"
         )
-        print("-" * 100)
+        print("-" * 110)
         for core_table in CORE_MAPPINGS:
-            n_rows, rejects = load_core(cur, core_table, args.staging_rules)
+            n_rows, n_dropped, rejects = load_core(cur, core_table, args.staging_rules)
             n_rejected = sum(rejects.values())
             total_rejects += n_rejected
             reasons = (
@@ -424,7 +434,7 @@ def main() -> int:
                 or "—"
             )
             print(
-                f"{core_table:<24} {n_rows:>7} {n_rows - n_rejected:>10} {n_rejected:>9}  {reasons}"
+                f"{core_table:<24} {n_rows:>7} {n_dropped:>9} {n_rows - n_dropped - n_rejected:>10} {n_rejected:>9}  {reasons}"
             )
 
     print(
