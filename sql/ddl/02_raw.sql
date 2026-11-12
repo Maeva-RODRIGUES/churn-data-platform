@@ -93,14 +93,18 @@ CREATE TABLE IF NOT EXISTS raw.census_zcta (
 );
 
 -- Réponses brutes de l'API US Census (ACS 5-Year, TIGER/Web), une ligne par appel.
--- Exception au tout-TEXT : la réponse est un document JSON, conservée telle quelle
--- en JSONB. Sentinelles (-666666666) et typage traités en STAGING.
+-- Exception au tout-TEXT : une réponse JSON est conservée telle quelle en JSONB ;
+-- les erreurs de l'API (texte brut ou HTML) vont dans payload_text.
+-- Append-only : un retry ajoute une ligne, STAGING garde la dernière par request_url
+-- (selon _loaded_at). Sentinelles (-666666666) et typage traités en STAGING.
 CREATE TABLE IF NOT EXISTS raw.census_api_responses (
     endpoint     TEXT        NOT NULL,  -- acs5 ou tiger_zcta
     request_url  TEXT        NOT NULL,  -- URL appelée, sans la clé API
     http_status  SMALLINT    NOT NULL,
-    payload      JSONB       NOT NULL,
+    payload      JSONB,                 -- corps de la réponse s'il est en JSON
+    payload_text TEXT,                  -- corps de la réponse sinon
     _loaded_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- La clé API ne doit jamais être stockée (incident du 22/10)
-    CONSTRAINT ck_census_api_responses_no_api_key CHECK (request_url !~* '[?&]key=')
+    CONSTRAINT ck_census_api_responses_no_api_key CHECK (request_url !~* '[?&]key='),
+    CONSTRAINT ck_census_api_responses_one_payload CHECK (num_nonnulls(payload, payload_text) = 1)
 );
