@@ -61,7 +61,7 @@ jobs:
       - name: pyproject and lock are consistent
         run: poetry check --lock
       - name: Cache virtualenv
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .venv
           key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
@@ -104,7 +104,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pipx install poetry==${{ env.POETRY_VERSION }}
       - name: Cache virtualenv
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .venv
           key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
