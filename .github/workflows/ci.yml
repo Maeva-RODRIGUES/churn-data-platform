@@ -124,6 +124,9 @@ jobs:
           fi
       - name: Conformance passes with STAGING rules
         run: poetry run python scripts/check_mpd_conformance.py --data-dir tests/fixtures/data --staging-rules
+      # Same fixture through dbt: STAGING views, then merge into the DDL tables.
+      - name: dbt build
+        run: poetry run dbt build --project-dir dbt --profiles-dir dbt
 
   ddl:
     name: ddl

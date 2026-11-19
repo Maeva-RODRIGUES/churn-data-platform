@@ -1,0 +1,25 @@
+name: churn
+version: "0.1.0"
+profile: churn
+require-dbt-version: [">=1.11.0", "<1.12.0"]
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+# Les tables CORE sont créées par sql/ddl : on vérifie qu'elles existent avant
+# toute écriture, sinon dbt les recréerait sans clés ni CHECK.
+on-run-start:
+  - "{{ assert_core_tables_exist() }}"
+
+models:
+  churn:
+    staging:
+      +schema: staging
+      +materialized: view
+    core:
+      +schema: core
+      +materialized: incremental
+      +incremental_strategy: merge
+      +full_refresh: false
+      +on_schema_change: fail
