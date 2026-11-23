@@ -17,3 +17,9 @@ data/processed/*
 
 # Secrets (API keys) — never commit, see .env.example
 .env
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
