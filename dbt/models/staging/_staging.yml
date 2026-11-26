@@ -1,0 +1,65 @@
+version: 2
+
+# Tests en error : ils bloquent avant l'écriture dans CORE.
+# Les plages observées et la réciproque de R1 sont en warn (dossier tests/).
+
+models:
+  - name: stg_geo_enrichment
+    columns:
+      - name: zipcode
+        data_tests: [not_null, unique]
+
+  - name: stg_customers
+    columns:
+      - name: customer_id
+        data_tests: [not_null, unique]
+      - name: gender
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['Female', 'Male']}
+      - name: zipcode
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_geo_enrichment'), field: zipcode}
+
+  - name: stg_contracts
+    columns:
+      - name: customer_id
+        data_tests: [not_null, unique]
+      - name: contract
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['Month-to-month', 'One year', 'Two year']}
+      - name: payment_method
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)']
+
+  - name: stg_services
+    columns:
+      - name: customer_id
+        data_tests: [not_null, unique]
+      - name: internet_service
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['DSL', 'Fiber optic', 'No']}
+
+  - name: stg_satisfaction
+    columns:
+      - name: customer_id
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments: {to: ref('stg_customers'), field: customer_id}
+
+  - name: stg_feedback
+    columns:
+      - name: customer_id
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments: {to: ref('stg_customers'), field: customer_id}

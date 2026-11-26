@@ -14,8 +14,8 @@ Les données traversent quatre couches, chacune dans son schéma PostgreSQL :
 | Couche | Rôle | État |
 |---|---|---|
 | `raw` | Copie fidèle des fichiers sources, colonnes `TEXT`, aucune correction | en place |
-| `staging` | Nettoyage et règles de correction (dbt) | règles proposées, notebook 3.0 |
-| `core` | Modèle de référence typé : clés, domaines, bornes, cohérence | en place |
+| `staging` | Nettoyage et règles de correction (dbt) | en place (vues dbt) |
+| `core` | Modèle de référence typé : clés, domaines, bornes, cohérence | en place, alimenté par dbt |
 | `mart` | Tables d'analyse et de features (dbt) | à venir |
 
 Le détail du modèle physique et des contraintes est dans [`sql/README.md`](sql/README.md).
@@ -24,6 +24,7 @@ Le détail du modèle physique et des contraintes est dans [`sql/README.md`](sql
 
 ```
 data/            sources (non versionnées) : raw/ et processed/
+dbt/             projet dbt : raw → staging → core (voir dbt/README.md)
 notebooks/       exploration et enrichissement (1.0, 2.0, 3.0)
 scripts/         check_mpd_conformance.py : contrôle des données contre le MPD
 sql/ddl/         DDL PostgreSQL : schémas, couche raw, couche core
@@ -70,7 +71,10 @@ Le script vide les tables `raw.*` et `core.*` : à lancer uniquement sur une bas
 poetry run pytest                 # tests unitaires
 poetry run ruff check .           # lint
 poetry run ruff format .          # formatage
+poetry run dbt build --project-dir dbt --profiles-dir dbt   # modèles et tests dbt
 ```
+
+Pour `dbt build`, le DDL doit être appliqué avant et les variables `POSTGRES_*` exportées.
 
 Sans les vraies données, le contrôle de conformité peut tourner sur le jeu synthétique :
 `--data-dir tests/fixtures/data` (voir [`tests/fixtures/data/README.md`](tests/fixtures/data/README.md)).

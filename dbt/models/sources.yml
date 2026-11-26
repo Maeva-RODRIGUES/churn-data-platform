@@ -1,0 +1,23 @@
+version: 2
+
+# Tests sur RAW : en dbt build, un échec bloque tous les modèles en aval.
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: telco
+        data_tests:
+          - unique_per_batch:
+              arguments: {key: customer_id}
+      - name: telco_satisfaction
+        data_tests:
+          - unique_per_batch:
+              arguments: {key: customer_id}
+      - name: telco_noisy_feedback
+        data_tests:
+          - unique_per_batch:
+              arguments: {key: upper(customer_id)}
+      - name: census_zcta
+        data_tests:
+          - unique_per_batch:
+              arguments: {key: zipcode}
